@@ -10,10 +10,10 @@ const servAdr = "localhost:8080"
 
 func main() {
 
-	url := storage.NewUrl()
+	url := storage.NewURL()
 
 	e := echo.New()
-	e.GET("/:id", handlers.GetUrl(url))
-	e.POST("/", handlers.PostUrl(url))
-	e.Logger.Info(e.Start(servAdr))
+	e.GET("/:id", handlers.GetURL(url))
+	e.POST("/", handlers.PostURL(url))
+	e.Logger.Info(e.Start(":8080"))
 }

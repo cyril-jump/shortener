@@ -1,11 +1,11 @@
 package storage
 
-type Url struct {
+type URL struct {
 	Short map[string]string
 }
 
-func NewUrl() *Url {
-	return &Url{
+func NewURL() *URL {
+	return &URL{
 		Short: make(map[string]string),
 	}
 }
