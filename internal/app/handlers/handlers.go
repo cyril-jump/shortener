@@ -15,11 +15,11 @@ func PostURL(url *storage.URL) echo.HandlerFunc {
 		if err != nil || len(body) == 0 {
 			return c.NoContent(http.StatusBadRequest)
 		}
-		shortUrl := hash(body)
+		shortURL := hash(body)
 
-		url.Short[shortUrl] = string(body)
+		url.Short[shortURL] = string(body)
 
-		return c.String(http.StatusCreated, shortUrl)
+		return c.String(http.StatusCreated, shortURL)
 	}
 }
 
