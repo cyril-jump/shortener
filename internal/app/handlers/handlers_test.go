@@ -12,7 +12,7 @@ import (
 
 func TestGetURL(t *testing.T) {
 	type args struct {
-		url *storage.URL
+		db *storage.URL
 	}
 	tests := []struct {
 		name     string
@@ -22,14 +22,14 @@ func TestGetURL(t *testing.T) {
 	}{
 		{
 			name: "Test GetURL Code 307",
-			args: args{url: &storage.URL{Short: map[string]string{
+			args: args{db: &storage.URL{Short: map[string]string{
 				"http://localhost:8080/f845599b098517893fc2712d32774f53": "https://www.yandex.ru"}}},
 			wantCode: http.StatusTemporaryRedirect,
 			params:   "f845599b098517893fc2712d32774f53",
 		},
 		{
 			name: "Test PostURL Code 400",
-			args: args{url: &storage.URL{Short: map[string]string{
+			args: args{db: &storage.URL{Short: map[string]string{
 				"http://localhost:8080/f845599b098517893fc2712d32774f53": "https://www.yandex.ru"}}},
 			wantCode: http.StatusBadRequest,
 			params:   "",
@@ -44,7 +44,7 @@ func TestGetURL(t *testing.T) {
 			c.SetPath("/:id")
 			c.SetParamNames("id")
 			c.SetParamValues(tt.params)
-			db := tt.args.url
+			db := tt.args.db
 			handler := GetURL(db)
 			if assert.NoError(t, handler(c)) {
 				assert.Equal(t, tt.wantCode, rec.Code)
@@ -55,7 +55,7 @@ func TestGetURL(t *testing.T) {
 
 func TestPostURL(t *testing.T) {
 	type args struct {
-		url *storage.URL
+		db *storage.URL
 	}
 	tests := []struct {
 		name      string
@@ -67,13 +67,13 @@ func TestPostURL(t *testing.T) {
 			name:      "Test PostURL Code 201",
 			valueBody: "https://www.yandex.ru",
 			wantCode:  http.StatusCreated,
-			args:      args{url: &storage.URL{Short: map[string]string{}}},
+			args:      args{db: &storage.URL{Short: map[string]string{}}},
 		},
 		{
 			name:      "Test PostURL Code 400",
 			valueBody: "",
 			wantCode:  http.StatusBadRequest,
-			args:      args{url: &storage.URL{Short: map[string]string{}}},
+			args:      args{db: &storage.URL{Short: map[string]string{}}},
 		},
 	}
 	for _, tt := range tests {
@@ -83,7 +83,7 @@ func TestPostURL(t *testing.T) {
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
 			c.SetPath("/")
-			db := tt.args.url
+			db := tt.args.db
 			handler := PostURL(db)
 			if assert.NoError(t, handler(c)) {
 				assert.Equal(t, tt.wantCode, rec.Code)

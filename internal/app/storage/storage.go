@@ -1,5 +1,7 @@
 package storage
 
+//data base
+
 type URL struct {
 	Short map[string]string
 }
