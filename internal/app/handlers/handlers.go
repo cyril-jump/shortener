@@ -10,10 +10,9 @@ import (
 )
 
 // Const and Var
+const host = "http://localhost:8080/"
 
 var shortURL = ""
-
-const host = "http://localhost:8080/"
 
 // Handlers
 
