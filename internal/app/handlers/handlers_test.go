@@ -12,7 +12,8 @@ import (
 
 func TestGetURL(t *testing.T) {
 	type args struct {
-		db *storage.URL
+		db  *storage.DB
+		cfg *storage.Config
 	}
 	tests := []struct {
 		name     string
@@ -22,15 +23,26 @@ func TestGetURL(t *testing.T) {
 	}{
 		{
 			name: "Test GetURL Code 307",
-			args: args{db: &storage.URL{Short: map[string]string{
-				"http://localhost:8080/f845599b098517893fc2712d32774f53": "https://www.yandex.ru"}}},
+			args: args{
+				db: &storage.DB{StorageURL: map[string]string{
+					"http://localhost:8080/f845599b098517893fc2712d32774f53": "https://www.yandex.ru"}},
+				cfg: &storage.Config{
+					SrvAddr:  ":8080",
+					HostName: "http://localhost:8080/",
+				},
+			},
 			wantCode: http.StatusTemporaryRedirect,
 			params:   "f845599b098517893fc2712d32774f53",
 		},
 		{
 			name: "Test PostURL Code 400",
-			args: args{db: &storage.URL{Short: map[string]string{
-				"http://localhost:8080/f845599b098517893fc2712d32774f53": "https://www.yandex.ru"}}},
+			args: args{db: &storage.DB{StorageURL: map[string]string{
+				"http://localhost:8080/f845599b098517893fc2712d32774f53": "https://www.yandex.ru"}},
+				cfg: &storage.Config{
+					SrvAddr:  ":8080",
+					HostName: "http://localhost:8080/",
+				},
+			},
 			wantCode: http.StatusBadRequest,
 			params:   "",
 		},
@@ -45,7 +57,8 @@ func TestGetURL(t *testing.T) {
 			c.SetParamNames("id")
 			c.SetParamValues(tt.params)
 			db := tt.args.db
-			handler := GetURL(db)
+			cfg := tt.args.cfg
+			handler := GetURL(db, cfg)
 			if assert.NoError(t, handler(c)) {
 				assert.Equal(t, tt.wantCode, rec.Code)
 			}
@@ -55,7 +68,8 @@ func TestGetURL(t *testing.T) {
 
 func TestPostURL(t *testing.T) {
 	type args struct {
-		db *storage.URL
+		db  *storage.DB
+		cfg *storage.Config
 	}
 	tests := []struct {
 		name      string
@@ -67,13 +81,25 @@ func TestPostURL(t *testing.T) {
 			name:      "Test PostURL Code 201",
 			valueBody: "https://www.yandex.ru",
 			wantCode:  http.StatusCreated,
-			args:      args{db: &storage.URL{Short: map[string]string{}}},
+			args: args{
+				db: &storage.DB{StorageURL: map[string]string{}},
+				cfg: &storage.Config{
+					SrvAddr:  ":8080",
+					HostName: "http://localhost:8080/",
+				},
+			},
 		},
 		{
 			name:      "Test PostURL Code 400",
 			valueBody: "",
 			wantCode:  http.StatusBadRequest,
-			args:      args{db: &storage.URL{Short: map[string]string{}}},
+			args: args{
+				db: &storage.DB{StorageURL: map[string]string{}},
+				cfg: &storage.Config{
+					SrvAddr:  ":8080",
+					HostName: "http://localhost:8080/",
+				},
+			},
 		},
 	}
 	for _, tt := range tests {
@@ -84,7 +110,8 @@ func TestPostURL(t *testing.T) {
 			c := e.NewContext(req, rec)
 			c.SetPath("/")
 			db := tt.args.db
-			handler := PostURL(db)
+			cfg := tt.args.cfg
+			handler := PostURL(db, cfg)
 			if assert.NoError(t, handler(c)) {
 				assert.Equal(t, tt.wantCode, rec.Code)
 			}

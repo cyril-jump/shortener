@@ -9,44 +9,39 @@ import (
 	"net/http"
 )
 
-// Const and Var
-
-var shortURL = ""
-
-const host = "http://localhost:8080/"
-
 // Handlers
 
-func PostURL(url *storage.URL) echo.HandlerFunc {
+func PostURL(db *storage.DB, cfg *storage.Config) echo.HandlerFunc {
 	return func(c echo.Context) error {
-
+		var shortURL string
 		body, err := io.ReadAll(c.Request().Body)
 
 		if err != nil || len(body) == 0 {
 			return c.NoContent(http.StatusBadRequest)
 		} else {
-			shortURL = hash(body)
+			shortURL = hash(body, cfg.HostName)
 		}
 
-		url.Short[shortURL] = string(body)
+		db.StorageURL[shortURL] = string(body)
 
 		return c.String(http.StatusCreated, shortURL)
 	}
 }
 
-func GetURL(db *storage.URL) echo.HandlerFunc {
+func GetURL(db *storage.DB, cfg *storage.Config) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		var shortURL string
 
 		if c.Param("id") == "" {
 			return c.NoContent(http.StatusBadRequest)
 		} else {
-			shortURL = host + c.Param("id")
+			shortURL = cfg.HostName + c.Param("id")
 		}
 
-		if db.Short[shortURL] == "" {
+		if db.StorageURL[shortURL] == "" {
 			return c.NoContent(http.StatusBadRequest)
 		} else {
-			c.Response().Header().Set("Location", db.Short[shortURL])
+			c.Response().Header().Set("Location", db.StorageURL[shortURL])
 			return c.NoContent(http.StatusTemporaryRedirect)
 		}
 
@@ -54,7 +49,7 @@ func GetURL(db *storage.URL) echo.HandlerFunc {
 }
 
 // other func
-func hash(url []byte) string {
+func hash(url []byte, hostName string) string {
 	hash := md5.Sum(url)
-	return fmt.Sprintf("%s%x", host, hash)
+	return fmt.Sprintf("%s%x", hostName, hash)
 }

@@ -8,9 +8,12 @@ import (
 )
 
 func main() {
+	//config
+	cfg := storage.NewConfig(":8080", "http://localhost:8080/")
 	//db
-	url := storage.NewURL()
+	db := storage.NewDB()
 
+	//new Echo instance
 	e := echo.New()
 
 	// Middleware
@@ -18,9 +21,11 @@ func main() {
 	e.Use(middleware.Recover())
 
 	//Routes
-	e.GET("/:id", handlers.GetURL(url))
-	e.POST("/", handlers.PostURL(url))
+	e.GET("/:id", handlers.GetURL(db, cfg))
+	e.POST("/", handlers.PostURL(db, cfg))
 
 	// Start Server
-	e.Logger.Fatal(e.Start(":8080"))
+	if err := e.Start(cfg.SrvAddr); err != nil {
+		e.Logger.Fatal(err)
+	}
 }
