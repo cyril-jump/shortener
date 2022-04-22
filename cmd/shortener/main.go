@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/cyril-jump/shortener/internal/app/config"
 	"github.com/cyril-jump/shortener/internal/app/handlers"
 	"github.com/cyril-jump/shortener/internal/app/storage"
 	"github.com/labstack/echo/v4"
@@ -9,7 +10,7 @@ import (
 
 func main() {
 	//config
-	cfg := storage.NewConfig(":8080", "http://localhost:8080/")
+	cfg := config.NewConfig(":8080", "http://localhost:8080/")
 	//db
 	db := storage.NewDB()
 
@@ -25,7 +26,7 @@ func main() {
 	e.POST("/", handlers.PostURL(db, cfg))
 
 	// Start Server
-	if err := e.Start(cfg.SrvAddr); err != nil {
+	if err := e.Start(cfg.SrvAddr()); err != nil {
 		e.Logger.Fatal(err)
 	}
 }
