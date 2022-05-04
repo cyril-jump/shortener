@@ -28,6 +28,7 @@ func main() {
 	//Routes
 	e.GET("/:id", srv.GetURL)
 	e.POST("/", srv.PostURL)
+	e.POST("/api/shorten", srv.PostURLJSON)
 
 	// Start Server
 	if err := e.Start(cfg.SrvAddr()); err != nil {
