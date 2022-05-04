@@ -123,3 +123,62 @@ func TestServer_GetURL(t *testing.T) {
 		})
 	}
 }
+
+/*var (
+	userJSON = `{"url":"https://www.yandex.ru"}`
+)*/
+
+func TestServer_PostURLJSON(t *testing.T) {
+	type args struct {
+		db            *storage.DB
+		cfg           *config.Config
+		valueBodyJSON string
+	}
+	tests := []struct {
+		name     string
+		wantCode int
+		args     args
+	}{
+		{
+			name:     "Test PostURLJSON Code 201",
+			wantCode: http.StatusCreated,
+			args: args{
+				db:            storage.NewDB(),
+				cfg:           config.NewConfig(":8080", "http://localhost:8080/"),
+				valueBodyJSON: `{"url": "https://www.yandex.ru"}`,
+			},
+		},
+		{
+			name:     "Test PostURLJSON Code 400",
+			wantCode: http.StatusBadRequest,
+			args: args{
+				db:            storage.NewDB(),
+				cfg:           config.NewConfig(":8080", "http://localhost:8080/"),
+				valueBodyJSON: `{"url": ""}`,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			srv := New(tt.args.db, tt.args.cfg)
+
+			e := echo.New()
+			req := httptest.NewRequest(
+				http.MethodPost, "http://localhost:8080", strings.NewReader(tt.args.valueBodyJSON),
+			)
+			rec := httptest.NewRecorder()
+			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+			c := e.NewContext(req, rec)
+			c.SetPath("/api/shorten")
+
+			handler := srv.PostURLJSON(c)
+
+			if assert.NoError(t, handler) {
+				assert.Equal(t, tt.wantCode, rec.Code)
+				//assert.Equal(t, userJSON, rec.Body.String())
+			}
+
+		})
+	}
+}

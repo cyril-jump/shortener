@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"crypto/md5"
+	"encoding/json"
 	"fmt"
 	"github.com/cyril-jump/shortener/internal/app/interfaces"
 	"github.com/labstack/echo/v4"
@@ -69,24 +70,28 @@ func (s Server) PostURLJSON(c echo.Context) error {
 		ShortURL string `json:"result"`
 	}
 
-	/*	body, err := io.ReadAll(c.Request().Body)
-		if err != nil || len(body) == 0 {
-			return c.NoContent(http.StatusBadRequest)
-		}
-
-		err = json.Unmarshal(body, request.baseURL)
-		if err != nil {
-			return c.NoContent(http.StatusBadRequest)
-		}*/
-
-	if err := c.Bind(&request); err != nil {
-		return c.JSON(http.StatusBadRequest, err)
+	body, err := io.ReadAll(c.Request().Body)
+	if err != nil || len(body) == 0 {
+		return c.NoContent(http.StatusBadRequest)
 	}
 
+	err = json.Unmarshal(body, &request)
+	if err != nil {
+		return c.NoContent(http.StatusBadRequest)
+	}
+
+	if request.BaseURL == "" {
+		return c.NoContent(http.StatusBadRequest)
+	}
+
+	/*	if err := c.Bind(&request); err != nil {
+			return c.JSON(http.StatusBadRequest, err)
+		}
+	*/
 	response.ShortURL = hash([]byte(request.BaseURL), s.cfg.HostName())
 	s.db.SetURL(response.ShortURL, request.BaseURL)
 
-	return c.JSON(http.StatusCreated, &response)
+	return c.JSON(http.StatusCreated, response)
 }
 
 // other func
