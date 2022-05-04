@@ -9,10 +9,14 @@ import (
 )
 
 func main() {
+
 	//config
 	cfg := config.NewConfig(":8080", "http://localhost:8080/")
 	//db
 	db := storage.NewDB()
+
+	//server
+	srv := handlers.New(db, cfg)
 
 	//new Echo instance
 	e := echo.New()
@@ -22,8 +26,8 @@ func main() {
 	e.Use(middleware.Recover())
 
 	//Routes
-	e.GET("/:id", handlers.GetURL(db, cfg))
-	e.POST("/", handlers.PostURL(db, cfg))
+	e.GET("/:id", srv.GetURL)
+	e.POST("/", srv.PostURL)
 
 	// Start Server
 	if err := e.Start(cfg.SrvAddr()); err != nil {
