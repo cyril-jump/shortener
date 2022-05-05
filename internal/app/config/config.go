@@ -4,9 +4,11 @@ package config
 
 type EnvVar struct {
 	ServerAddress string `env:"SERVER_ADDRESS" envDefault:":8080"`
-	BaseURL       string `env:"BASE_URL" envDefault:"http://localhost:8080/"`
+	BaseURL       string `env:"BASE_URL" envDefault:"http://localhost:8080"`
 }
 
+//http://localhost:8080/f845599b098517893fc2712d32774f53
+//http://localhost:8080/f845599b098517893fc2712d32774f53
 type Config struct {
 	serverAddress string
 	baseURL       string

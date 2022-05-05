@@ -50,7 +50,7 @@ func (s Server) GetURL(c echo.Context) error {
 	if c.Param("id") == "" {
 		return c.NoContent(http.StatusBadRequest)
 	} else {
-		shortURL = s.cfg.HostName() + c.Param("id")
+		shortURL = s.cfg.HostName() + "/" + c.Param("id")
 	}
 
 	if baseURL = s.db.BaseURL(shortURL); baseURL == "" {
@@ -97,5 +97,5 @@ func (s Server) PostURLJSON(c echo.Context) error {
 // other func
 func hash(url []byte, hostName string) string {
 	hash := md5.Sum(url)
-	return fmt.Sprintf("%s%x", hostName, hash)
+	return fmt.Sprintf("%s%s%x", hostName, "/", hash)
 }
