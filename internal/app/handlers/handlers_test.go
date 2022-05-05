@@ -82,7 +82,7 @@ func TestServer_GetURL(t *testing.T) {
 			wantCode: http.StatusTemporaryRedirect,
 			args: args{
 				db:       storage.NewDB(),
-				cfg:      config.NewConfig(":8080", "http://localhost:8080/"),
+				cfg:      config.NewConfig(":8080", "http://localhost:8080"),
 				baseURL:  "https://www.yandex.ru",
 				shortURL: "http://localhost:8080/f845599b098517893fc2712d32774f53",
 				paramID:  "f845599b098517893fc2712d32774f53",
@@ -93,7 +93,7 @@ func TestServer_GetURL(t *testing.T) {
 			wantCode: http.StatusBadRequest,
 			args: args{
 				db:       storage.NewDB(),
-				cfg:      config.NewConfig(":8080", "http://localhost:8080/"),
+				cfg:      config.NewConfig(":8080", "http://localhost:8080"),
 				baseURL:  "https://www.yandex.ru",
 				shortURL: "http://localhost:8080/f845599b098517893fc2712d32774f53",
 				paramID:  "",
@@ -123,10 +123,6 @@ func TestServer_GetURL(t *testing.T) {
 		})
 	}
 }
-
-/*var (
-	userJSON = `{"url":"https://www.yandex.ru"}`
-)*/
 
 func TestServer_PostURLJSON(t *testing.T) {
 	type args struct {
