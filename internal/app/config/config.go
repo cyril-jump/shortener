@@ -2,26 +2,31 @@ package config
 
 // config
 
+type EnvVar struct {
+	ServerAddress string `env:"SERVER_ADDRESS" envDefault:":8080"`
+	BaseURL       string `env:"BASE_URL" envDefault:"http://localhost:8080/"`
+}
+
 type Config struct {
-	srvAddr  string
-	hostName string
+	serverAddress string
+	baseURL       string
 }
 
 //getters
 
 func (c Config) SrvAddr() string {
-	return c.srvAddr
+	return c.serverAddress
 }
 
 func (c Config) HostName() string {
-	return c.hostName
+	return c.baseURL
 }
 
 //constructor
 
 func NewConfig(srvAddr, hostName string) *Config {
 	return &Config{
-		srvAddr:  srvAddr,
-		hostName: hostName,
+		serverAddress: srvAddr,
+		baseURL:       hostName,
 	}
 }

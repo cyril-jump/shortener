@@ -1,17 +1,26 @@
 package main
 
 import (
+	"github.com/caarlos0/env/v6"
 	"github.com/cyril-jump/shortener/internal/app/config"
 	"github.com/cyril-jump/shortener/internal/app/handlers"
 	"github.com/cyril-jump/shortener/internal/app/storage"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"log"
 )
 
 func main() {
 
+	//evn var
+	envVar := config.EnvVar{}
+	err := env.Parse(&envVar)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	//config
-	cfg := config.NewConfig(":8080", "http://localhost:8080/")
+	cfg := config.NewConfig(envVar.ServerAddress, envVar.BaseURL)
 	//db
 	db := storage.NewDB()
 
