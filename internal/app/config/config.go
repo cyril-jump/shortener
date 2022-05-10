@@ -30,9 +30,10 @@ func (c Config) FileStoragePath() string {
 
 //constructor
 
-func NewConfig(srvAddr, hostName string) *Config {
+func NewConfig(srvAddr, hostName, fileStoragePath string) *Config {
 	return &Config{
-		serverAddress: srvAddr,
-		baseURL:       hostName,
+		serverAddress:   srvAddr,
+		baseURL:         hostName,
+		fileStoragePath: fileStoragePath,
 	}
 }

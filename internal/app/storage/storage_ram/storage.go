@@ -1,4 +1,4 @@
-package storageRAM
+package storage_ram
 
 import "github.com/cyril-jump/shortener/internal/app/interfaces"
 

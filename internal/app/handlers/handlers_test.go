@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"github.com/cyril-jump/shortener/internal/app/config"
-	"github.com/cyril-jump/shortener/internal/app/storage/storageRAM"
+	"github.com/cyril-jump/shortener/internal/app/storage/storage_ram"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -13,7 +13,7 @@ import (
 
 func TestServer_PostURL(t *testing.T) {
 	type args struct {
-		db        *storageRAM.DB
+		db        *storage_ram.DB
 		cfg       *config.Config
 		valueBody string
 	}
@@ -26,8 +26,8 @@ func TestServer_PostURL(t *testing.T) {
 			name:     "Test PostURL Code 201",
 			wantCode: http.StatusCreated,
 			args: args{
-				db:        storageRAM.NewDB(),
-				cfg:       config.NewConfig(":8080", "http://localhost:8080/"),
+				db:        storage_ram.NewDB(),
+				cfg:       config.NewConfig(":8080", "http://localhost:8080/", ""),
 				valueBody: "https://www.yandex.ru",
 			},
 		},
@@ -35,8 +35,8 @@ func TestServer_PostURL(t *testing.T) {
 			name:     "Test PostURL Code 400",
 			wantCode: http.StatusBadRequest,
 			args: args{
-				db:        storageRAM.NewDB(),
-				cfg:       config.NewConfig(":8080", "http://localhost:8080/"),
+				db:        storage_ram.NewDB(),
+				cfg:       config.NewConfig(":8080", "http://localhost:8080/", ""),
 				valueBody: "",
 			},
 		},
@@ -66,7 +66,7 @@ func TestServer_PostURL(t *testing.T) {
 
 func TestServer_GetURL(t *testing.T) {
 	type args struct {
-		db       *storageRAM.DB
+		db       *storage_ram.DB
 		cfg      *config.Config
 		baseURL  string
 		shortURL string
@@ -81,8 +81,8 @@ func TestServer_GetURL(t *testing.T) {
 			name:     "Test GetURL Code 307",
 			wantCode: http.StatusTemporaryRedirect,
 			args: args{
-				db:       storageRAM.NewDB(),
-				cfg:      config.NewConfig(":8080", "http://localhost:8080"),
+				db:       storage_ram.NewDB(),
+				cfg:      config.NewConfig(":8080", "http://localhost:8080", ""),
 				baseURL:  "https://www.yandex.ru",
 				shortURL: "http://localhost:8080/f845599b098517893fc2712d32774f53",
 				paramID:  "f845599b098517893fc2712d32774f53",
@@ -92,8 +92,8 @@ func TestServer_GetURL(t *testing.T) {
 			name:     "Test PostURL Code 400",
 			wantCode: http.StatusBadRequest,
 			args: args{
-				db:       storageRAM.NewDB(),
-				cfg:      config.NewConfig(":8080", "http://localhost:8080"),
+				db:       storage_ram.NewDB(),
+				cfg:      config.NewConfig(":8080", "http://localhost:8080", ""),
 				baseURL:  "https://www.yandex.ru",
 				shortURL: "http://localhost:8080/f845599b098517893fc2712d32774f53",
 				paramID:  "",
@@ -104,7 +104,7 @@ func TestServer_GetURL(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 
 			srv := New(tt.args.db, tt.args.cfg)
-			srv.db.SetShortURL(tt.args.shortURL, tt.args.baseURL)
+			_ = srv.db.SetShortURL(tt.args.shortURL, tt.args.baseURL)
 
 			e := echo.New()
 			req := httptest.NewRequest(http.MethodGet, "http://localhost:8080", nil)
@@ -126,7 +126,7 @@ func TestServer_GetURL(t *testing.T) {
 
 func TestServer_PostURLJSON(t *testing.T) {
 	type args struct {
-		db            *storageRAM.DB
+		db            *storage_ram.DB
 		cfg           *config.Config
 		valueBodyJSON string
 	}
@@ -139,8 +139,8 @@ func TestServer_PostURLJSON(t *testing.T) {
 			name:     "Test PostURLJSON Code 201",
 			wantCode: http.StatusCreated,
 			args: args{
-				db:            storageRAM.NewDB(),
-				cfg:           config.NewConfig(":8080", "http://localhost:8080/"),
+				db:            storage_ram.NewDB(),
+				cfg:           config.NewConfig(":8080", "http://localhost:8080/", ""),
 				valueBodyJSON: `{"url": "https://www.yandex.ru"}`,
 			},
 		},
@@ -148,8 +148,8 @@ func TestServer_PostURLJSON(t *testing.T) {
 			name:     "Test PostURLJSON Code 400",
 			wantCode: http.StatusBadRequest,
 			args: args{
-				db:            storageRAM.NewDB(),
-				cfg:           config.NewConfig(":8080", "http://localhost:8080/"),
+				db:            storage_ram.NewDB(),
+				cfg:           config.NewConfig(":8080", "http://localhost:8080/", ""),
 				valueBodyJSON: `{"url": ""}`,
 			},
 		},
