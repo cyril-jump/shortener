@@ -5,8 +5,8 @@ import (
 	"github.com/cyril-jump/shortener/internal/app/config"
 	"github.com/cyril-jump/shortener/internal/app/handlers"
 	"github.com/cyril-jump/shortener/internal/app/interfaces"
-	"github.com/cyril-jump/shortener/internal/app/storage/storage_ram"
-	"github.com/cyril-jump/shortener/internal/app/storage/storage_rom"
+	"github.com/cyril-jump/shortener/internal/app/storage/ram"
+	"github.com/cyril-jump/shortener/internal/app/storage/rom"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"log"
@@ -27,12 +27,12 @@ func main() {
 	cfg := config.NewConfig(envVar.ServerAddress, envVar.BaseURL, envVar.FileStoragePath)
 
 	if cfg.FileStoragePath() != "" {
-		db, err = storage_rom.NewDB(cfg.FileStoragePath())
+		db, err = rom.NewDB(cfg.FileStoragePath())
 		if err != nil {
 			log.Fatal(err)
 		}
 	} else {
-		db = storage_ram.NewDB()
+		db = ram.NewDB()
 	}
 	defer db.Close()
 

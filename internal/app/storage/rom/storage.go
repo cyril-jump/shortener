@@ -1,4 +1,4 @@
-package storage_rom
+package rom
 
 import (
 	"bufio"
