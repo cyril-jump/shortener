@@ -1,10 +1,9 @@
 package handlers
 
 import (
-	"crypto/md5"
 	"encoding/json"
-	"fmt"
 	"github.com/cyril-jump/shortener/internal/app/interfaces"
+	"github.com/cyril-jump/shortener/internal/app/utils"
 	"github.com/labstack/echo/v4"
 	"io"
 	"net/http"
@@ -34,10 +33,13 @@ func (s Server) PostURL(c echo.Context) error {
 		return c.NoContent(http.StatusBadRequest)
 	}
 
-	shortURL = hash(body, s.cfg.HostName())
+	shortURL = utils.Hash(body, s.cfg.HostName())
 	baseURL = string(body)
 
-	s.db.SetURL(shortURL, baseURL)
+	err = s.db.SetShortURL(shortURL, baseURL)
+	if err != nil || len(body) == 0 {
+		return c.NoContent(http.StatusBadRequest)
+	}
 
 	return c.String(http.StatusCreated, shortURL)
 }
@@ -53,7 +55,7 @@ func (s Server) GetURL(c echo.Context) error {
 		shortURL = s.cfg.HostName() + "/" + c.Param("id")
 	}
 
-	if baseURL = s.db.BaseURL(shortURL); baseURL == "" {
+	if baseURL, _ = s.db.GetBaseURL(shortURL); baseURL == "" {
 		return c.NoContent(http.StatusBadRequest)
 	} else {
 		c.Response().Header().Set("Location", baseURL)
@@ -88,14 +90,11 @@ func (s Server) PostURLJSON(c echo.Context) error {
 			return c.JSON(http.StatusBadRequest, err)
 		}
 	*/
-	response.ShortURL = hash([]byte(request.BaseURL), s.cfg.HostName())
-	s.db.SetURL(response.ShortURL, request.BaseURL)
+	response.ShortURL = utils.Hash([]byte(request.BaseURL), s.cfg.HostName())
+	err = s.db.SetShortURL(response.ShortURL, request.BaseURL)
+	if err != nil {
+		return c.NoContent(http.StatusBadRequest)
+	}
 
 	return c.JSON(http.StatusCreated, response)
-}
-
-// other func
-func hash(url []byte, hostName string) string {
-	hash := md5.Sum(url)
-	return fmt.Sprintf("%s%s%x", hostName, "/", hash)
 }

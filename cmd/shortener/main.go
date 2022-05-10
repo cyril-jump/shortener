@@ -4,7 +4,7 @@ import (
 	"github.com/caarlos0/env/v6"
 	"github.com/cyril-jump/shortener/internal/app/config"
 	"github.com/cyril-jump/shortener/internal/app/handlers"
-	"github.com/cyril-jump/shortener/internal/app/storage"
+	"github.com/cyril-jump/shortener/internal/app/storage/storageRAM"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"log"
@@ -22,7 +22,7 @@ func main() {
 	//config
 	cfg := config.NewConfig(envVar.ServerAddress, envVar.BaseURL)
 	//db
-	db := storage.NewDB()
+	db := storageRAM.NewDB()
 
 	//server
 	srv := handlers.New(db, cfg)

@@ -3,13 +3,15 @@ package config
 // config
 
 type EnvVar struct {
-	ServerAddress string `env:"SERVER_ADDRESS" envDefault:":8080"`
-	BaseURL       string `env:"BASE_URL" envDefault:"http://localhost:8080"`
+	ServerAddress   string `env:"SERVER_ADDRESS" envDefault:":8080"`
+	BaseURL         string `env:"BASE_URL" envDefault:"http://localhost:8080"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 }
 
 type Config struct {
-	serverAddress string
-	baseURL       string
+	serverAddress   string
+	baseURL         string
+	fileStoragePath string
 }
 
 //getters
@@ -20,6 +22,10 @@ func (c Config) SrvAddr() string {
 
 func (c Config) HostName() string {
 	return c.baseURL
+}
+
+func (c Config) FileStoragePath() string {
+	return c.fileStoragePath
 }
 
 //constructor
