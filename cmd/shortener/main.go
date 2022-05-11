@@ -25,7 +25,8 @@ var envVar struct {
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 }
 
-func init() {
+func main() {
+
 	//evn vars
 	err := env.Parse(&envVar)
 	if err != nil {
@@ -37,11 +38,7 @@ func init() {
 	flag.StringVar(&flags.b, "b", envVar.BaseURL, "base url")
 	flag.StringVar(&flags.f, "f", envVar.FileStoragePath, "file storage path")
 	flag.Parse()
-}
 
-func main() {
-
-	var err error
 	//db
 	var db interfaces.Storage
 
