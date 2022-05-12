@@ -1,6 +1,8 @@
 package ram
 
-import "github.com/cyril-jump/shortener/internal/app/interfaces"
+import (
+	"github.com/cyril-jump/shortener/internal/app/utils/errs"
+)
 
 // DB
 
@@ -18,18 +20,17 @@ func (D *DB) GetBaseURL(shortURL string) (string, error) {
 	if v, ok := D.storageURL[shortURL]; ok {
 		return v, nil
 	}
-	return "", interfaces.ErrNotFound
+	return "", errs.NotFound
 }
 
 func (D *DB) SetShortURL(shortURL, baseURL string) error {
 	if _, ok := D.storageURL[shortURL]; ok {
-		return interfaces.ErrAlreadyExists
+		return errs.AlreadyExists
 	}
 	D.storageURL[shortURL] = baseURL
 	return nil
 }
 
-func (D *DB) Close() error {
+func (D *DB) Close() {
 	D.storageURL = nil
-	return nil
 }

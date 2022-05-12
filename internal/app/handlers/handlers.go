@@ -2,7 +2,8 @@ package handlers
 
 import (
 	"encoding/json"
-	"github.com/cyril-jump/shortener/internal/app/interfaces"
+	"github.com/cyril-jump/shortener/internal/app/config"
+	"github.com/cyril-jump/shortener/internal/app/storage"
 	"github.com/cyril-jump/shortener/internal/app/utils"
 	"github.com/labstack/echo/v4"
 	"io"
@@ -10,11 +11,11 @@ import (
 )
 
 type Server struct {
-	db  interfaces.Storage
-	cfg interfaces.Config
+	db  storage.DB
+	cfg config.Cfg
 }
 
-func New(storage interfaces.Storage, config interfaces.Config) *Server {
+func New(storage storage.DB, config config.Cfg) *Server {
 	return &Server{
 		db:  storage,
 		cfg: config,
@@ -33,7 +34,10 @@ func (s Server) PostURL(c echo.Context) error {
 		return c.NoContent(http.StatusBadRequest)
 	}
 
-	shortURL = utils.Hash(body, s.cfg.HostName())
+	hostName, err := s.cfg.Get("base_url")
+	utils.CheckErr(err, "base_url")
+
+	shortURL = utils.Hash(body, hostName)
 	baseURL = string(body)
 
 	err = s.db.SetShortURL(shortURL, baseURL)
@@ -52,7 +56,9 @@ func (s Server) GetURL(c echo.Context) error {
 	if c.Param("id") == "" {
 		return c.NoContent(http.StatusBadRequest)
 	} else {
-		shortURL = s.cfg.HostName() + "/" + c.Param("id")
+		hostName, err := s.cfg.Get("base_url")
+		utils.CheckErr(err, "base_url")
+		shortURL = hostName + "/" + c.Param("id")
 	}
 
 	if baseURL, _ = s.db.GetBaseURL(shortURL); baseURL == "" {
@@ -86,11 +92,10 @@ func (s Server) PostURLJSON(c echo.Context) error {
 		return c.NoContent(http.StatusBadRequest)
 	}
 
-	/*	if err := c.Bind(&request); err != nil {
-			return c.JSON(http.StatusBadRequest, err)
-		}
-	*/
-	response.ShortURL = utils.Hash([]byte(request.BaseURL), s.cfg.HostName())
+	hostName, err := s.cfg.Get("base_url")
+	utils.CheckErr(err, "base_url")
+
+	response.ShortURL = utils.Hash([]byte(request.BaseURL), hostName)
 	err = s.db.SetShortURL(response.ShortURL, request.BaseURL)
 	if err != nil {
 		return c.NoContent(http.StatusBadRequest)

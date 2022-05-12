@@ -4,55 +4,46 @@ import (
 	"github.com/caarlos0/env/v6"
 	"github.com/cyril-jump/shortener/internal/app/config"
 	"github.com/cyril-jump/shortener/internal/app/handlers"
-	"github.com/cyril-jump/shortener/internal/app/interfaces"
+	"github.com/cyril-jump/shortener/internal/app/storage"
 	"github.com/cyril-jump/shortener/internal/app/storage/ram"
 	"github.com/cyril-jump/shortener/internal/app/storage/rom"
+	"github.com/cyril-jump/shortener/internal/app/utils"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	flag "github.com/spf13/pflag"
 	"log"
 )
 
-var flags struct {
-	a string
-	b string
-	f string
-}
-
-var envVar struct {
-	ServerAddress   string `env:"SERVER_ADDRESS" envDefault:":8080"`
-	BaseURL         string `env:"BASE_URL" envDefault:"http://localhost:8080"`
-	FileStoragePath string `env:"FILE_STORAGE_PATH"`
-}
-
 func init() {
 	//evn vars
-	err := env.Parse(&envVar)
+	err := env.Parse(&config.EnvVar)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	//flag
-	flag.StringVarP(&flags.a, "address", "a", envVar.ServerAddress, "server address")
-	flag.StringVarP(&flags.b, "base", "b", envVar.BaseURL, "base url")
-	flag.StringVarP(&flags.f, "file", "f", envVar.FileStoragePath, "file storage path")
+	//flags
+	flag.StringVarP(&config.Flags.ServerAddress, "address", "a", config.EnvVar.ServerAddress, "server address")
+	flag.StringVarP(&config.Flags.BaseURL, "base", "b", config.EnvVar.BaseURL, "base url")
+	flag.StringVarP(&config.Flags.FileStoragePath, "file", "f", config.EnvVar.FileStoragePath, "file storage path")
 	flag.Parse()
+
 }
 
 func main() {
 
 	var err error
 	//db
-	var db interfaces.Storage
+	var db storage.DB
 
 	//config
-	cfg := config.NewConfig(flags.a, flags.b, flags.f)
+	cfg := config.NewConfig(config.Flags.ServerAddress, config.Flags.BaseURL, config.Flags.FileStoragePath)
 
-	if cfg.FileStoragePath() != "" {
-		db, err = rom.NewDB(cfg.FileStoragePath())
-		if err != nil {
-			log.Fatal(err)
-		}
+	fileStoragePath, err := cfg.Get("file_storage_path")
+	utils.CheckErr(err, "file_storage_path")
+
+	if fileStoragePath != "" {
+		db, err = rom.NewDB(fileStoragePath)
+		utils.CheckErr(err, "")
 	} else {
 		db = ram.NewDB()
 	}
@@ -76,7 +67,11 @@ func main() {
 	e.POST("/api/shorten", srv.PostURLJSON)
 
 	// Start Server
-	if err := e.Start(cfg.SrvAddr()); err != nil {
+
+	serverAddress, err := cfg.Get("server_address")
+	utils.CheckErr(err, "server_address")
+
+	if err = e.Start(serverAddress); err != nil {
 		e.Logger.Fatal(err)
 	}
 }

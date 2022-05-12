@@ -3,7 +3,7 @@ package rom
 import (
 	"bufio"
 	"encoding/json"
-	"github.com/cyril-jump/shortener/internal/app/interfaces"
+	"github.com/cyril-jump/shortener/internal/app/utils/errs"
 	"log"
 	"os"
 )
@@ -46,21 +46,23 @@ func NewDB(filepath string) (*DB, error) {
 	}, nil
 }
 
-func (D *DB) Close() error {
+func (D *DB) Close() {
 	D.cache = nil
-	return D.file.Close()
+	if err := D.file.Close(); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func (D *DB) GetBaseURL(key string) (string, error) {
 	if v, ok := D.cache[key]; ok {
 		return v, nil
 	}
-	return "", interfaces.ErrNotFound
+	return "", errs.NotFound
 }
 
 func (D *DB) SetShortURL(key string, value string) error {
 	if _, ok := D.cache[key]; ok {
-		return interfaces.ErrAlreadyExists
+		return errs.AlreadyExists
 	}
 	D.cache[key] = value
 	data := make(map[string]string)
