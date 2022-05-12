@@ -3,6 +3,6 @@ package errs
 import "errors"
 
 var (
-	NotFound      = errors.New("not found")
-	AlreadyExists = errors.New("already exists")
+	ErrNotFound      = errors.New("not found")
+	ErrAlreadyExists = errors.New("already exists")
 )

@@ -57,12 +57,12 @@ func (D *DB) GetBaseURL(key string) (string, error) {
 	if v, ok := D.cache[key]; ok {
 		return v, nil
 	}
-	return "", errs.NotFound
+	return "", errs.ErrNotFound
 }
 
 func (D *DB) SetShortURL(key string, value string) error {
 	if _, ok := D.cache[key]; ok {
-		return errs.AlreadyExists
+		return errs.ErrAlreadyExists
 	}
 	D.cache[key] = value
 	data := make(map[string]string)
