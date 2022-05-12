@@ -53,7 +53,7 @@ func (c Config) Get(key string) (string, error) {
 	}
 
 	if !gjson.GetBytes(buf, key).Exists() {
-		return "", errs.NotFound
+		return "", errs.ErrNotFound
 	}
 
 	return gjson.GetBytes(buf, key).String(), nil
