@@ -40,10 +40,7 @@ func (s Server) PostURL(c echo.Context) error {
 	shortURL = utils.Hash(body, hostName)
 	baseURL = string(body)
 
-	err = s.db.SetShortURL(shortURL, baseURL)
-	if err != nil || len(body) == 0 {
-		return c.NoContent(http.StatusBadRequest)
-	}
+	s.db.SetShortURL(shortURL, baseURL)
 
 	return c.String(http.StatusCreated, shortURL)
 }

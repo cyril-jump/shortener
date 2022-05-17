@@ -25,7 +25,7 @@ func (D *DB) GetBaseURL(shortURL string) (string, error) {
 
 func (D *DB) SetShortURL(shortURL, baseURL string) error {
 	if _, ok := D.storageURL[shortURL]; ok {
-		return errs.ErrAlreadyExists
+		return nil
 	}
 	D.storageURL[shortURL] = baseURL
 	return nil

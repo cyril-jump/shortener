@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"github.com/caarlos0/env/v6"
 	"github.com/cyril-jump/shortener/internal/app/config"
 	"github.com/cyril-jump/shortener/internal/app/handlers"
@@ -12,6 +13,10 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	flag "github.com/spf13/pflag"
 	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 func init() {
@@ -32,6 +37,9 @@ func init() {
 func main() {
 
 	var err error
+	ctx, cancel := context.WithCancel(context.Background())
+	signalChan := make(chan os.Signal)
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 	//db
 	var db storage.DB
 
@@ -47,7 +55,6 @@ func main() {
 	} else {
 		db = ram.NewDB()
 	}
-	defer db.Close()
 
 	//server
 	srv := handlers.New(db, cfg)
@@ -71,7 +78,23 @@ func main() {
 	serverAddress, err := cfg.Get("server_address")
 	utils.CheckErr(err, "server_address")
 
-	if err = e.Start(serverAddress); err != nil {
-		e.Logger.Fatal(err)
+	go func() {
+		if err = e.Start(serverAddress); err != nil && err != http.ErrServerClosed {
+			e.Logger.Fatal(err)
+		}
+
+	}()
+
+	for {
+		select {
+		case <-signalChan:
+			log.Println("Shutting down...")
+			cancel()
+			if err = e.Shutdown(ctx); err != nil && err != ctx.Err() {
+				e.Logger.Fatal(err)
+			}
+			db.Close()
+			os.Exit(0)
+		}
 	}
 }

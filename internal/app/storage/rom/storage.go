@@ -32,7 +32,7 @@ func NewDB(filepath string) (*DB, error) {
 		for scanner.Scan() {
 			err := json.Unmarshal(scanner.Bytes(), &data)
 			if err != nil {
-				log.Fatal("DB file is damaged.")
+				log.Fatal("DB file is damaged.", err)
 			}
 		}
 	}
@@ -62,7 +62,7 @@ func (D *DB) GetBaseURL(key string) (string, error) {
 
 func (D *DB) SetShortURL(key string, value string) error {
 	if _, ok := D.cache[key]; ok {
-		return errs.ErrAlreadyExists
+		return nil
 	}
 	D.cache[key] = value
 	data := make(map[string]string)
