@@ -38,8 +38,8 @@ func main() {
 
 	var err error
 	ctx, cancel := context.WithCancel(context.Background())
-	signalChan := make(chan os.Signal)
-	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, syscall.SIGINT)
 	//db
 	var db storage.DB
 
@@ -85,16 +85,14 @@ func main() {
 
 	}()
 
-	for {
-		select {
-		case <-signalChan:
-			log.Println("Shutting down...")
-			cancel()
-			if err = e.Shutdown(ctx); err != nil && err != ctx.Err() {
-				e.Logger.Fatal(err)
-			}
-			db.Close()
-			os.Exit(0)
-		}
+	<-signalChan
+
+	log.Println("Shutting down...")
+
+	cancel()
+	if err = e.Shutdown(ctx); err != nil && err != ctx.Err() {
+		e.Logger.Fatal(err)
 	}
+	db.Close()
+
 }
