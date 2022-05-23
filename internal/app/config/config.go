@@ -17,8 +17,8 @@ var Flags struct {
 // env vars
 
 var EnvVar struct {
-	ServerAddress   string `env:"SERVER_ADDRESS" envDefault:":8080"`
-	BaseURL         string `env:"BASE_URL" envDefault:"http://localhost:8080"`
+	ServerAddress   string `env:"SERVER_ADDRESS" envDefault:":9090"`
+	BaseURL         string `env:"BASE_URL" envDefault:"http://localhost:9090"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 }
 
@@ -28,13 +28,6 @@ type Config struct {
 	serverAddress   string
 	baseURL         string
 	fileStoragePath string
-}
-
-//getters
-
-type SomeStruct struct {
-	Field1 string
-	Field2 string
 }
 
 func (c Config) Get(key string) (string, error) {

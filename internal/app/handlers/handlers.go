@@ -7,18 +7,21 @@ import (
 	"github.com/cyril-jump/shortener/internal/app/utils"
 	"github.com/labstack/echo/v4"
 	"io"
+	"log"
 	"net/http"
 )
 
 type Server struct {
 	db  storage.DB
 	cfg config.Cfg
+	usr storage.Users
 }
 
-func New(storage storage.DB, config config.Cfg) *Server {
+func New(storage storage.DB, config config.Cfg, usr storage.Users) *Server {
 	return &Server{
 		db:  storage,
 		cfg: config,
+		usr: usr,
 	}
 }
 
@@ -26,9 +29,10 @@ func New(storage storage.DB, config config.Cfg) *Server {
 
 func (s Server) PostURL(c echo.Context) error {
 	var (
-		shortURL, baseURL string
+		shortURL, baseURL, userName, userID string
 	)
 
+	userName = c.Request().RemoteAddr
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil || len(body) == 0 {
 		return c.NoContent(http.StatusBadRequest)
@@ -37,18 +41,22 @@ func (s Server) PostURL(c echo.Context) error {
 	hostName, err := s.cfg.Get("base_url")
 	utils.CheckErr(err, "base_url")
 
+	userID, err = s.usr.GetUserID(userName)
+
 	shortURL = utils.Hash(body, hostName)
 	baseURL = string(body)
 
-	s.db.SetShortURL(shortURL, baseURL)
+	s.db.SetShortURL(userID, shortURL, baseURL)
 
 	return c.String(http.StatusCreated, shortURL)
 }
 
 func (s Server) GetURL(c echo.Context) error {
 	var (
-		shortURL, baseURL string
+		shortURL, baseURL, userName, userID string
 	)
+
+	userName = c.Request().RemoteAddr
 
 	if c.Param("id") == "" {
 		return c.NoContent(http.StatusBadRequest)
@@ -58,7 +66,9 @@ func (s Server) GetURL(c echo.Context) error {
 		shortURL = hostName + "/" + c.Param("id")
 	}
 
-	if baseURL, _ = s.db.GetBaseURL(shortURL); baseURL == "" {
+	userID, _ = s.usr.GetUserID(userName)
+
+	if baseURL, _ = s.db.GetBaseURL(userID, shortURL); baseURL == "" {
 		return c.NoContent(http.StatusBadRequest)
 	} else {
 		c.Response().Header().Set("Location", baseURL)
@@ -75,6 +85,11 @@ func (s Server) PostURLJSON(c echo.Context) error {
 		ShortURL string `json:"result"`
 	}
 
+	var (
+		userName, userID string
+	)
+
+	userName = c.Request().RemoteAddr
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil || len(body) == 0 {
 		return c.NoContent(http.StatusBadRequest)
@@ -92,11 +107,31 @@ func (s Server) PostURLJSON(c echo.Context) error {
 	hostName, err := s.cfg.Get("base_url")
 	utils.CheckErr(err, "base_url")
 
+	userID, err = s.usr.GetUserID(userName)
+
 	response.ShortURL = utils.Hash([]byte(request.BaseURL), hostName)
-	err = s.db.SetShortURL(response.ShortURL, request.BaseURL)
+	err = s.db.SetShortURL(userID, response.ShortURL, request.BaseURL)
 	if err != nil {
 		return c.NoContent(http.StatusBadRequest)
 	}
 
 	return c.JSON(http.StatusCreated, response)
+}
+
+func (s Server) GetURLsByUserID(c echo.Context) error {
+
+	var (
+		userName, userID string
+	)
+	var err error
+	userName = c.Request().RemoteAddr
+	userID, err = s.usr.GetUserID(userName)
+	if err != nil {
+		log.Println(err)
+	}
+	URLs, err := s.db.GetAllURLsByUserID(userID)
+	if err != nil {
+		return c.NoContent(http.StatusNoContent)
+	}
+	return c.JSON(http.StatusOK, URLs)
 }

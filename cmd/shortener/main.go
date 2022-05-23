@@ -5,9 +5,11 @@ import (
 	"github.com/caarlos0/env/v6"
 	"github.com/cyril-jump/shortener/internal/app/config"
 	"github.com/cyril-jump/shortener/internal/app/handlers"
+	"github.com/cyril-jump/shortener/internal/app/middlewares"
 	"github.com/cyril-jump/shortener/internal/app/storage"
 	"github.com/cyril-jump/shortener/internal/app/storage/ram"
 	"github.com/cyril-jump/shortener/internal/app/storage/rom"
+	"github.com/cyril-jump/shortener/internal/app/storage/users"
 	"github.com/cyril-jump/shortener/internal/app/utils"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -55,21 +57,23 @@ func main() {
 	} else {
 		db = ram.NewDB()
 	}
-
+	usr := users.New()
 	//server
-	srv := handlers.New(db, cfg)
+	srv := handlers.New(db, cfg, usr)
 
 	//new Echo instance
 	e := echo.New()
 
 	// Middleware
+	mw := middlewares.New(usr)
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 	e.Use(middleware.Gzip())
 	e.Use(middleware.Decompress())
-
+	e.Use(mw.SessionWithCookies)
 	//Routes
 	e.GET("/:id", srv.GetURL)
+	e.GET("/api/user/urls", srv.GetURLsByUserID)
 	e.POST("/", srv.PostURL)
 	e.POST("/api/shorten", srv.PostURLJSON)
 

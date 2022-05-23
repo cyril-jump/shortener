@@ -1,36 +1,57 @@
 package ram
 
 import (
+	"github.com/cyril-jump/shortener/internal/app/storage"
 	"github.com/cyril-jump/shortener/internal/app/utils/errs"
 )
 
 // DB
 
 type DB struct {
-	storageURL map[string]string
+	DataCache map[string][]storage.ModelURL
 }
 
 //constructor
 
 func NewDB() *DB {
-	return &DB{storageURL: make(map[string]string)}
+
+	return &DB{DataCache: make(map[string][]storage.ModelURL)}
 }
 
-func (D *DB) GetBaseURL(shortURL string) (string, error) {
-	if v, ok := D.storageURL[shortURL]; ok {
-		return v, nil
+func (D *DB) GetBaseURL(userID, shortURL string) (string, error) {
+	if _, ok := D.DataCache[userID]; ok {
+		for _, val := range D.DataCache[userID] {
+			if val.ShortURL == shortURL {
+				return val.BaseURL, nil
+			}
+		}
 	}
-	return "", errs.ErrNotFound
+	return "", errs.ErrNoContent
 }
 
-func (D *DB) SetShortURL(shortURL, baseURL string) error {
-	if _, ok := D.storageURL[shortURL]; ok {
-		return nil
+func (D *DB) GetAllURLsByUserID(userID string) ([]storage.ModelURL, error) {
+	if _, ok := D.DataCache[userID]; ok {
+		return D.DataCache[userID], nil
 	}
-	D.storageURL[shortURL] = baseURL
+	return nil, errs.ErrNoContent
+}
+
+func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
+	modelURL := storage.ModelURL{
+		ShortURL: shortURL,
+		BaseURL:  baseURL,
+	}
+	if _, ok := D.DataCache[userID]; ok {
+		for _, val := range D.DataCache[userID] {
+			if val.ShortURL == shortURL {
+				return nil
+			}
+		}
+	}
+	D.DataCache[userID] = append(D.DataCache[userID], modelURL)
 	return nil
 }
 
 func (D *DB) Close() {
-	D.storageURL = nil
+	D.DataCache = nil
 }
