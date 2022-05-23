@@ -41,7 +41,7 @@ func (s Server) PostURL(c echo.Context) error {
 	hostName, err := s.cfg.Get("base_url")
 	utils.CheckErr(err, "base_url")
 
-	userID, err = s.usr.GetUserID(userName)
+	userID, _ = s.usr.GetUserID(userName)
 
 	shortURL = utils.Hash(body, hostName)
 	baseURL = string(body)
@@ -107,7 +107,7 @@ func (s Server) PostURLJSON(c echo.Context) error {
 	hostName, err := s.cfg.Get("base_url")
 	utils.CheckErr(err, "base_url")
 
-	userID, err = s.usr.GetUserID(userName)
+	userID, _ = s.usr.GetUserID(userName)
 
 	response.ShortURL = utils.Hash([]byte(request.BaseURL), hostName)
 	err = s.db.SetShortURL(userID, response.ShortURL, request.BaseURL)

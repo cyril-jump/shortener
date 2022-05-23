@@ -24,7 +24,7 @@ func (M *MW) SessionWithCookies(next echo.HandlerFunc) echo.HandlerFunc {
 		cookie, err := c.Cookie("cookie")
 		if err != nil {
 			cookie.Name = "cookie"
-			cookie.Value, err = M.users.CreateCookie(userID)
+			cookie.Value, _ = M.users.CreateCookie(userID)
 			cookie.Path = "/"
 			c.SetCookie(cookie)
 			c.Request().AddCookie(cookie)
@@ -33,7 +33,7 @@ func (M *MW) SessionWithCookies(next echo.HandlerFunc) echo.HandlerFunc {
 			if ok := M.users.CheckCookie(cookie.Value, userID); !ok {
 				log.Println(ok)
 				cookie.Name = "cookie"
-				cookie.Value, err = M.users.CreateCookie(userID)
+				cookie.Value, _ = M.users.CreateCookie(userID)
 				cookie.Path = "/"
 				c.SetCookie(cookie)
 				c.Request().AddCookie(cookie)
