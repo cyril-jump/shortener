@@ -239,8 +239,8 @@ func TestServer_GetURLsByUserID(t *testing.T) {
 			req := httptest.NewRequest(http.MethodGet, "http://localhost:8080", nil)
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
-			tt.args.usr.SetUserID(c.Request().RemoteAddr)
-			userID, _ := tt.args.usr.GetUserID(c.Request().RemoteAddr)
+			tt.args.usr.SetUserID("user")
+			userID, _ := tt.args.usr.GetUserID("user")
 			if tt.args.isWrite {
 				_ = srv.db.SetShortURL(userID, tt.args.shortURL1, tt.args.baseURL1)
 				_ = srv.db.SetShortURL(userID, tt.args.shortURL2, tt.args.baseURL2)

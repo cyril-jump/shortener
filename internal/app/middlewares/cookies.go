@@ -19,8 +19,8 @@ func New(users storage.Users) *MW {
 
 func (M *MW) SessionWithCookies(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		M.users.SetUserID(c.Request().RemoteAddr)
-		userID, _ := M.users.GetUserID(c.Request().RemoteAddr)
+		M.users.SetUserID("user")
+		userID, _ := M.users.GetUserID("user")
 
 		cookie, err := c.Cookie("cookie")
 		if err != nil {

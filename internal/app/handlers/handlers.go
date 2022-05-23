@@ -32,7 +32,7 @@ func (s Server) PostURL(c echo.Context) error {
 		shortURL, baseURL, userName, userID string
 	)
 
-	userName = c.Request().RemoteAddr
+	userName = "user"
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil || len(body) == 0 {
 		return c.NoContent(http.StatusBadRequest)
@@ -55,8 +55,8 @@ func (s Server) GetURL(c echo.Context) error {
 	var (
 		shortURL, baseURL, userName, userID string
 	)
-
-	userName = c.Request().RemoteAddr
+	var err error
+	userName = "user"
 
 	if c.Param("id") == "" {
 		return c.NoContent(http.StatusBadRequest)
@@ -68,7 +68,7 @@ func (s Server) GetURL(c echo.Context) error {
 
 	userID, _ = s.usr.GetUserID(userName)
 
-	if baseURL, _ = s.db.GetBaseURL(userID, shortURL); baseURL == "" {
+	if baseURL, err = s.db.GetBaseURL(userID, shortURL); err != nil {
 		return c.NoContent(http.StatusBadRequest)
 	} else {
 		c.Response().Header().Set("Location", baseURL)
@@ -89,7 +89,7 @@ func (s Server) PostURLJSON(c echo.Context) error {
 		userName, userID string
 	)
 
-	userName = c.Request().RemoteAddr
+	userName = "user"
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil || len(body) == 0 {
 		return c.NoContent(http.StatusBadRequest)
@@ -124,7 +124,7 @@ func (s Server) GetURLsByUserID(c echo.Context) error {
 		userName, userID string
 	)
 	var err error
-	userName = c.Request().RemoteAddr
+	userName = "user"
 	userID, err = s.usr.GetUserID(userName)
 	if err != nil {
 		log.Println(err)
