@@ -7,7 +7,6 @@ import (
 	"github.com/cyril-jump/shortener/internal/app/utils"
 	"github.com/labstack/echo/v4"
 	"io"
-	"log"
 	"net/http"
 )
 
@@ -29,10 +28,14 @@ func New(storage storage.DB, config config.Cfg, usr storage.Users) *Server {
 
 func (s Server) PostURL(c echo.Context) error {
 	var (
-		shortURL, baseURL, userName, userID string
+		shortURL, baseURL, userID string
 	)
 
-	userName = "user"
+	cookie, err := c.Cookie("userID")
+	if err == nil {
+		userID = cookie.Value
+	}
+
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil || len(body) == 0 {
 		return c.NoContent(http.StatusBadRequest)
@@ -41,7 +44,7 @@ func (s Server) PostURL(c echo.Context) error {
 	hostName, err := s.cfg.Get("base_url")
 	utils.CheckErr(err, "base_url")
 
-	userID, _ = s.usr.GetUserID(userName)
+	//userID, _ = s.usr.GetUserID(userName)
 
 	shortURL = utils.Hash(body, hostName)
 	baseURL = string(body)
@@ -53,10 +56,13 @@ func (s Server) PostURL(c echo.Context) error {
 
 func (s Server) GetURL(c echo.Context) error {
 	var (
-		shortURL, baseURL, userName, userID string
+		shortURL, baseURL, userID string
 	)
 	var err error
-	userName = "user"
+	cookie, err := c.Cookie("userID")
+	if err == nil {
+		userID = cookie.Value
+	}
 
 	if c.Param("id") == "" {
 		return c.NoContent(http.StatusBadRequest)
@@ -66,7 +72,7 @@ func (s Server) GetURL(c echo.Context) error {
 		shortURL = hostName + "/" + c.Param("id")
 	}
 
-	userID, _ = s.usr.GetUserID(userName)
+	//userID, _ = s.usr.GetUserID(userName)
 
 	if baseURL, err = s.db.GetBaseURL(userID, shortURL); err != nil {
 		return c.NoContent(http.StatusBadRequest)
@@ -86,10 +92,13 @@ func (s Server) PostURLJSON(c echo.Context) error {
 	}
 
 	var (
-		userName, userID string
+		userID string
 	)
 
-	userName = "user"
+	cookie, err := c.Cookie("userID")
+	if err == nil {
+		userID = cookie.Value
+	}
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil || len(body) == 0 {
 		return c.NoContent(http.StatusBadRequest)
@@ -107,7 +116,7 @@ func (s Server) PostURLJSON(c echo.Context) error {
 	hostName, err := s.cfg.Get("base_url")
 	utils.CheckErr(err, "base_url")
 
-	userID, _ = s.usr.GetUserID(userName)
+	//userID, _ = s.usr.GetUserID(userName)
 
 	response.ShortURL = utils.Hash([]byte(request.BaseURL), hostName)
 	err = s.db.SetShortURL(userID, response.ShortURL, request.BaseURL)
@@ -121,17 +130,18 @@ func (s Server) PostURLJSON(c echo.Context) error {
 func (s Server) GetURLsByUserID(c echo.Context) error {
 
 	var (
-		userName, userID string
+		userID string
 	)
+	var URLs []storage.ModelURL
 	var err error
-	userName = "user"
-	userID, err = s.usr.GetUserID(userName)
-	if err != nil {
-		log.Println(err)
+	cookie, err := c.Cookie("userID")
+	if err == nil {
+		userID = cookie.Value
 	}
-	URLs, err := s.db.GetAllURLsByUserID(userID)
-	if err != nil {
+	//userID, _ = s.usr.GetUserID(userName)
+	if URLs, err = s.db.GetAllURLsByUserID(userID); err != nil {
 		return c.NoContent(http.StatusNoContent)
 	}
+
 	return c.JSON(http.StatusOK, URLs)
 }
