@@ -4,6 +4,7 @@ import (
 	"github.com/cyril-jump/shortener/internal/app/storage"
 	"github.com/labstack/echo/v4"
 	"log"
+	"net/http"
 )
 
 type MW struct {
@@ -23,6 +24,7 @@ func (M *MW) SessionWithCookies(next echo.HandlerFunc) echo.HandlerFunc {
 
 		cookie, err := c.Cookie("cookie")
 		if err != nil {
+			cookie := new(http.Cookie)
 			cookie.Name = "cookie"
 			cookie.Value, _ = M.users.CreateCookie(userID)
 			cookie.Path = "/"
@@ -32,6 +34,7 @@ func (M *MW) SessionWithCookies(next echo.HandlerFunc) echo.HandlerFunc {
 		} else {
 			if ok := M.users.CheckCookie(cookie.Value, userID); !ok {
 				log.Println(ok)
+				cookie := new(http.Cookie)
 				cookie.Name = "cookie"
 				cookie.Value, _ = M.users.CreateCookie(userID)
 				cookie.Path = "/"
