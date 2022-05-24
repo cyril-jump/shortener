@@ -1,7 +1,7 @@
 package storage
 
 type DB interface {
-	GetBaseURL(userID, shortURL string) (string, error)
+	GetBaseURL(shortURL string) (string, error)
 	GetAllURLsByUserID(userID string) ([]ModelURL, error)
 	SetShortURL(userID, shortURL, baseURL string) error
 	Close()

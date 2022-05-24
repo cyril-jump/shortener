@@ -4,7 +4,6 @@ import (
 	"github.com/cyril-jump/shortener/internal/app/storage"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
-	"log"
 	"net/http"
 )
 
@@ -23,7 +22,6 @@ func (M *MW) SessionWithCookies(next echo.HandlerFunc) echo.HandlerFunc {
 
 		cookie, err := c.Cookie("cookie")
 		if err != nil {
-			log.Println("create")
 			userID := uuid.New().String()
 			cookie := new(http.Cookie)
 			cookie.Path = "/"

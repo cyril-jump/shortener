@@ -5,6 +5,7 @@ import (
 	"github.com/cyril-jump/shortener/internal/app/config"
 	"github.com/cyril-jump/shortener/internal/app/storage"
 	"github.com/cyril-jump/shortener/internal/app/utils"
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"io"
 	"net/http"
@@ -31,11 +32,16 @@ func (s Server) PostURL(c echo.Context) error {
 		shortURL, baseURL, userID string
 	)
 
-	cookie, err := c.Cookie("cookie")
+	_, err := c.Cookie("cookie")
 	if err != nil {
-		return c.NoContent(http.StatusBadRequest)
+		userID = uuid.New().String()
+		cookie := new(http.Cookie)
+		cookie.Path = "/"
+		cookie.Value, _ = s.usr.CreateCookie(userID)
+		cookie.Name = "cookie"
+		c.SetCookie(cookie)
+		c.Request().AddCookie(cookie)
 	}
-	userID, _ = s.usr.CheckCookie(cookie.Value)
 
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil || len(body) == 0 {
@@ -57,14 +63,9 @@ func (s Server) PostURL(c echo.Context) error {
 
 func (s Server) GetURL(c echo.Context) error {
 	var (
-		shortURL, baseURL, userID string
+		shortURL, baseURL string
 	)
 	var err error
-	cookie, err := c.Cookie("cookie")
-	if err != nil {
-		return c.NoContent(http.StatusBadRequest)
-	}
-	userID, _ = s.usr.CheckCookie(cookie.Value)
 
 	if c.Param("id") == "" {
 		return c.NoContent(http.StatusBadRequest)
@@ -74,9 +75,7 @@ func (s Server) GetURL(c echo.Context) error {
 		shortURL = hostName + "/" + c.Param("id")
 	}
 
-	//userID, _ = s.usr.GetUserID(userName)
-
-	if baseURL, err = s.db.GetBaseURL(userID, shortURL); err != nil {
+	if baseURL, err = s.db.GetBaseURL(shortURL); err != nil {
 		return c.NoContent(http.StatusBadRequest)
 	} else {
 		c.Response().Header().Set("Location", baseURL)
@@ -97,11 +96,16 @@ func (s Server) PostURLJSON(c echo.Context) error {
 		userID string
 	)
 
-	cookie, err := c.Cookie("cookie")
+	_, err := c.Cookie("cookie")
 	if err != nil {
-		return c.NoContent(http.StatusBadRequest)
+		userID = uuid.New().String()
+		cookie := new(http.Cookie)
+		cookie.Path = "/"
+		cookie.Value, _ = s.usr.CreateCookie(userID)
+		cookie.Name = "cookie"
+		c.SetCookie(cookie)
+		c.Request().AddCookie(cookie)
 	}
-	userID, _ = s.usr.CheckCookie(cookie.Value)
 
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil || len(body) == 0 {
@@ -139,11 +143,16 @@ func (s Server) GetURLsByUserID(c echo.Context) error {
 	var URLs []storage.ModelURL
 	var err error
 
-	cookie, err := c.Cookie("cookie")
+	_, err = c.Cookie("cookie")
 	if err != nil {
-		return c.NoContent(http.StatusBadRequest)
+		userID = uuid.New().String()
+		cookie := new(http.Cookie)
+		cookie.Path = "/"
+		cookie.Value, _ = s.usr.CreateCookie(userID)
+		cookie.Name = "cookie"
+		c.SetCookie(cookie)
+		c.Request().AddCookie(cookie)
 	}
-	userID, _ = s.usr.CheckCookie(cookie.Value)
 
 	if URLs, err = s.db.GetAllURLsByUserID(userID); err != nil {
 		return c.NoContent(http.StatusNoContent)

@@ -15,6 +15,7 @@ type DB struct {
 	file      *os.File
 	DataFile  ModelFile `json:"data_file"`
 	DataCache map[string][]storage.ModelURL
+	GlobalBD  map[string]string
 	encoder   *json.Encoder
 }
 
@@ -34,6 +35,7 @@ func NewDB(filepath string) (*DB, error) {
 	}
 	var modelURL storage.ModelURL
 	dataCache := make(map[string][]storage.ModelURL)
+	globalDB := make(map[string]string)
 	var dataFile ModelFile
 
 	if stat, _ := file.Stat(); stat.Size() != 0 {
@@ -43,6 +45,7 @@ func NewDB(filepath string) (*DB, error) {
 			if err != nil {
 				log.Fatal("DB file is damaged.", err)
 			}
+			globalDB[dataFile.ShortURL] = dataFile.BaseURL
 			modelURL.ShortURL = dataFile.ShortURL
 			modelURL.BaseURL = dataFile.BaseURL
 			dataCache[dataFile.UserID] = append(dataCache[dataFile.UserID], modelURL)
@@ -54,6 +57,7 @@ func NewDB(filepath string) (*DB, error) {
 		file:      file,
 		DataFile:  dataFile,
 		DataCache: dataCache,
+		GlobalBD:  globalDB,
 		encoder:   json.NewEncoder(file),
 	}, nil
 }
@@ -65,16 +69,10 @@ func (D *DB) Close() {
 	}
 }
 
-func (D *DB) GetBaseURL(userID, shortURL string) (string, error) {
-
-	if _, ok := D.DataCache[userID]; ok {
-		for _, val := range D.DataCache[userID] {
-			if val.ShortURL == shortURL {
-				return val.BaseURL, nil
-			}
-		}
+func (D *DB) GetBaseURL(shortURL string) (string, error) {
+	if v, ok := D.GlobalBD[shortURL]; ok {
+		return v, nil
 	}
-
 	return "", errs.ErrNoContent
 }
 
@@ -90,9 +88,14 @@ func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
 	D.DataFile.UserID = userID
 	D.DataFile.ShortURL = shortURL
 	D.DataFile.BaseURL = baseURL
+
 	modelURL := storage.ModelURL{
 		ShortURL: shortURL,
 		BaseURL:  baseURL,
+	}
+
+	if _, ok := D.GlobalBD[shortURL]; !ok {
+		D.GlobalBD[shortURL] = baseURL
 	}
 
 	if _, ok := D.DataCache[userID]; ok {

@@ -9,22 +9,22 @@ import (
 
 type DB struct {
 	DataCache map[string][]storage.ModelURL
+	GlobalBD  map[string]string
 }
 
 //constructor
 
 func NewDB() *DB {
 
-	return &DB{DataCache: make(map[string][]storage.ModelURL)}
+	return &DB{
+		DataCache: make(map[string][]storage.ModelURL),
+		GlobalBD:  make(map[string]string),
+	}
 }
 
-func (D *DB) GetBaseURL(userID, shortURL string) (string, error) {
-	if _, ok := D.DataCache[userID]; ok {
-		for _, val := range D.DataCache[userID] {
-			if val.ShortURL == shortURL {
-				return val.BaseURL, nil
-			}
-		}
+func (D *DB) GetBaseURL(shortURL string) (string, error) {
+	if v, ok := D.GlobalBD[shortURL]; ok {
+		return v, nil
 	}
 	return "", errs.ErrNoContent
 }
@@ -41,6 +41,11 @@ func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
 		ShortURL: shortURL,
 		BaseURL:  baseURL,
 	}
+
+	if _, ok := D.GlobalBD[shortURL]; !ok {
+		D.GlobalBD[shortURL] = baseURL
+	}
+
 	if _, ok := D.DataCache[userID]; ok {
 		for _, val := range D.DataCache[userID] {
 			if val.ShortURL == shortURL {
