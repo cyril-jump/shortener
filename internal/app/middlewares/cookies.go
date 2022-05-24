@@ -20,33 +20,24 @@ func New(users storage.Users) *MW {
 
 func (M *MW) SessionWithCookies(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		userID := uuid.New().String()
-
-		_, err := c.Cookie("userID")
-		if err != nil {
-			cookie := new(http.Cookie)
-			cookie.Name = "userID"
-			cookie.Value = userID
-			c.SetCookie(cookie)
-			c.Request().AddCookie(cookie)
-		}
 
 		cookie, err := c.Cookie("cookie")
 		if err != nil {
+			log.Println("create")
+			userID := uuid.New().String()
 			cookie := new(http.Cookie)
-			cookie.Name = userID
-			cookie.Value, _ = M.users.CreateCookie(userID)
 			cookie.Path = "/"
+			cookie.Value, _ = M.users.CreateCookie(userID)
+			cookie.Name = "cookie"
 			c.SetCookie(cookie)
 			c.Request().AddCookie(cookie)
-
 		} else {
-			if ok := M.users.CheckCookie(cookie.Value, userID); !ok {
-				log.Println(ok)
+			if _, ok := M.users.CheckCookie(cookie.Value); !ok {
+				userID := uuid.New().String()
 				cookie := new(http.Cookie)
-				cookie.Name = "cookie"
-				cookie.Value, _ = M.users.CreateCookie(userID)
 				cookie.Path = "/"
+				cookie.Value, _ = M.users.CreateCookie(userID)
+				cookie.Name = "cookie"
 				c.SetCookie(cookie)
 				c.Request().AddCookie(cookie)
 			}

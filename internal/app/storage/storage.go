@@ -8,10 +8,8 @@ type DB interface {
 }
 
 type Users interface {
-	GetUserID(userName string) (string, error)
 	CreateCookie(userID string) (string, error)
-	CheckCookie(cookieOld, userID string) bool
-	SetUserID(userName string)
+	CheckCookie(tokenString string) (string, bool)
 }
 
 type ModelURL struct {

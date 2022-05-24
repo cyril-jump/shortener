@@ -1,69 +1,42 @@
 package users
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
+	"fmt"
 	"github.com/cyril-jump/shortener/internal/app/utils"
-	"github.com/cyril-jump/shortener/internal/app/utils/errs"
+	"github.com/golang-jwt/jwt"
 	"log"
 )
 
 type DBUsers struct {
-	storageUsers map[string]ModelUser
-	randNum      []byte
-	CookieWord   string
-}
-
-type ModelUser struct {
-	userID string
-	cookie string
+	randNum []byte
 }
 
 func New() *DBUsers {
 	key, err := utils.GenerateRandom(16)
 	if err != nil {
-		log.Fatalf("error: %v\n", err)
+		log.Println("error: %v\n", err)
 	}
 	return &DBUsers{
-		storageUsers: map[string]ModelUser{},
-		randNum:      key,
-		CookieWord:   "cookie",
+		randNum: key,
 	}
-}
-
-func (MU *DBUsers) GetUserID(userName string) (string, error) {
-	if _, ok := MU.storageUsers[userName]; !ok {
-		return "", errs.ErrNoContent
-	}
-	return MU.storageUsers[userName].userID, nil
-}
-
-func (MU *DBUsers) SetUserID(userName string) {
-	var model ModelUser
-	hash := utils.HashUser(userName)
-	model.userID = hex.EncodeToString(hash)
-	MU.storageUsers[userName] = model
 }
 
 func (MU *DBUsers) CreateCookie(userID string) (string, error) {
-	code := MU.randNum
-	id, err := hex.DecodeString(userID)
-	if err != nil {
-		return "", err
-	}
-	h := hmac.New(sha256.New, code)
-	h.Write(id)
-	return hex.EncodeToString(h.Sum(nil)), nil
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"user": userID})
+	tokenString, _ := token.SignedString(MU.randNum)
+	return tokenString, nil
 }
 
-func (MU *DBUsers) CheckCookie(cookieOld, userID string) bool {
-	oldCookie, _ := hex.DecodeString(cookieOld)
-	code := MU.randNum
-	mac := hmac.New(sha256.New, code)
-	id, _ := hex.DecodeString(userID)
-	mac.Write(id)
-	newCookie := mac.Sum(nil)
-	return hmac.Equal(newCookie, oldCookie)
+func (MU *DBUsers) CheckCookie(tokenString string) (string, bool) {
+	token, _ := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexected signing method: %v", token.Header["alg"])
+		}
+		return MU.randNum, nil
+	})
 
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		return fmt.Sprintf("%s", claims["user"]), ok
+	}
+	return "", false
 }

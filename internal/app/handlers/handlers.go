@@ -31,10 +31,11 @@ func (s Server) PostURL(c echo.Context) error {
 		shortURL, baseURL, userID string
 	)
 
-	cookie, err := c.Cookie("userID")
-	if err == nil {
-		userID = cookie.Value
+	cookie, err := c.Cookie("cookie")
+	if err != nil {
+		return c.NoContent(http.StatusBadRequest)
 	}
+	userID, _ = s.usr.CheckCookie(cookie.Value)
 
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil || len(body) == 0 {
@@ -59,10 +60,11 @@ func (s Server) GetURL(c echo.Context) error {
 		shortURL, baseURL, userID string
 	)
 	var err error
-	cookie, err := c.Cookie("userID")
-	if err == nil {
-		userID = cookie.Value
+	cookie, err := c.Cookie("cookie")
+	if err != nil {
+		return c.NoContent(http.StatusBadRequest)
 	}
+	userID, _ = s.usr.CheckCookie(cookie.Value)
 
 	if c.Param("id") == "" {
 		return c.NoContent(http.StatusBadRequest)
@@ -95,10 +97,12 @@ func (s Server) PostURLJSON(c echo.Context) error {
 		userID string
 	)
 
-	cookie, err := c.Cookie("userID")
-	if err == nil {
-		userID = cookie.Value
+	cookie, err := c.Cookie("cookie")
+	if err != nil {
+		return c.NoContent(http.StatusBadRequest)
 	}
+	userID, _ = s.usr.CheckCookie(cookie.Value)
+
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil || len(body) == 0 {
 		return c.NoContent(http.StatusBadRequest)
@@ -134,11 +138,13 @@ func (s Server) GetURLsByUserID(c echo.Context) error {
 	)
 	var URLs []storage.ModelURL
 	var err error
-	cookie, err := c.Cookie("userID")
-	if err == nil {
-		userID = cookie.Value
+
+	cookie, err := c.Cookie("cookie")
+	if err != nil {
+		return c.NoContent(http.StatusBadRequest)
 	}
-	//userID, _ = s.usr.GetUserID(userName)
+	userID, _ = s.usr.CheckCookie(cookie.Value)
+
 	if URLs, err = s.db.GetAllURLsByUserID(userID); err != nil {
 		return c.NoContent(http.StatusNoContent)
 	}

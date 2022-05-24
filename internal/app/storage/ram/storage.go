@@ -3,7 +3,6 @@ package ram
 import (
 	"github.com/cyril-jump/shortener/internal/app/storage"
 	"github.com/cyril-jump/shortener/internal/app/utils/errs"
-	"log"
 )
 
 // DB
@@ -20,12 +19,9 @@ func NewDB() *DB {
 }
 
 func (D *DB) GetBaseURL(userID, shortURL string) (string, error) {
-	log.Println(userID, " userID")
-	log.Println(shortURL, " short")
 	if _, ok := D.DataCache[userID]; ok {
 		for _, val := range D.DataCache[userID] {
 			if val.ShortURL == shortURL {
-				log.Println(val.BaseURL, "oooo")
 				return val.BaseURL, nil
 			}
 		}
