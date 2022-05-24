@@ -1,259 +1,257 @@
 package handlers
 
 import (
+	"encoding/json"
 	"github.com/cyril-jump/shortener/internal/app/config"
 	"github.com/cyril-jump/shortener/internal/app/middlewares"
 	"github.com/cyril-jump/shortener/internal/app/storage/ram"
 	"github.com/cyril-jump/shortener/internal/app/storage/users"
+	"github.com/go-resty/resty/v2"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 )
 
-func TestServer_PostURL(t *testing.T) {
-	type args struct {
-		db        *ram.DB
-		cfg       *config.Config
-		usr       *users.DBUsers
-		valueBody string
+type (
+	// for_TestServer_PostURLJSON
+	RequestURL struct {
+		URL string `json:"url"`
 	}
-	tests := []struct {
-		name     string
-		wantCode int
-		args     args
-	}{
-		{
-			name:     "Test PostURL Code 201",
-			wantCode: http.StatusCreated,
-			args: args{
-				db:        ram.NewDB(),
-				cfg:       config.NewConfig(":8080", "http://localhost:8080/", ""),
-				usr:       users.New(),
-				valueBody: "https://www.yandex.ru",
-			},
-		},
-		{
-			name:     "Test PostURL Code 400",
-			wantCode: http.StatusBadRequest,
-			args: args{
-				db:        ram.NewDB(),
-				cfg:       config.NewConfig(":8080", "http://localhost:8080/", ""),
-				usr:       users.New(),
-				valueBody: "",
-			},
-		},
+	// for_TestServer_PostURLJSON
+	ResponseURL struct {
+		ShortURL string `json:"result"`
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
 
-			srv := New(tt.args.db, tt.args.cfg, tt.args.usr)
-			mw := middlewares.New(tt.args.usr)
-			e := echo.New()
-			e.Use(mw.SessionWithCookies)
-			req := httptest.NewRequest(
-				http.MethodPost, "http://localhost:8080", strings.NewReader(tt.args.valueBody),
-			)
-			rec := httptest.NewRecorder()
-			c := e.NewContext(req, rec)
-			c.SetPath("/")
-
-			handler := srv.PostURL(c)
-
-			if assert.NoError(t, handler) {
-				assert.Equal(t, tt.wantCode, rec.Code)
-			}
-
-		})
+	ResponseFullURL struct {
+		URL  string `json:"original_url"`
+		SURL string `json:"short_url"`
 	}
+)
+
+type Suite struct {
+	suite.Suite
+	db      *ram.DB
+	cfg     *config.Config
+	usr     *users.DBUsers
+	e       *echo.Echo
+	router  *echo.Router
+	testSrv *httptest.Server
+	mw      *middlewares.MW
+	srv     *Server
 }
 
-func TestServer_GetURL(t *testing.T) {
-	type args struct {
-		db       *ram.DB
-		cfg      *config.Config
-		usr      *users.DBUsers
-		baseURL  string
-		shortURL string
-		paramID  string
+func (suite *Suite) SetupTest() {
+	suite.e = echo.New()
+	suite.router = echo.NewRouter(suite.e)
+	suite.db = ram.NewDB()
+	suite.cfg = config.NewConfig(":8080", "http://localhost:8080", "")
+	suite.usr = users.New()
+	suite.router = echo.NewRouter(suite.e)
+	suite.testSrv = httptest.NewServer(suite.e)
+	suite.mw = middlewares.New(suite.usr)
+	suite.srv = New(suite.db, suite.cfg, suite.usr)
+
+}
+
+func TestSuite(t *testing.T) {
+	suite.Run(t, new(Suite))
+}
+
+func (suite *Suite) TestServer_PostURL() {
+
+	suite.e.Use(suite.mw.SessionWithCookies)
+	suite.e.POST("/", suite.srv.PostURL)
+
+	type want struct {
+		code int
+	}
+	tests := []struct {
+		name string
+		URL  string
+		want want
+	}{
+		{
+			name: "Test PostURL Code 201",
+			URL:  "https://www.yandex.ru",
+			want: want{
+				code: http.StatusCreated,
+			},
+		},
+		{
+			name: "Test PostURL Code 400",
+			URL:  "",
+			want: want{
+				code: http.StatusBadRequest,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		suite.T().Run(tt.name, func(t *testing.T) {
+			payload := strings.NewReader(tt.URL)
+			client := resty.New()
+			res, err := client.R().SetBody(payload).Post(suite.testSrv.URL)
+			if err != nil {
+				t.Fatalf("Could not create POST request")
+			}
+			assert.Equal(t, tt.want.code, res.StatusCode())
+		})
+	}
+	defer suite.testSrv.Close()
+}
+
+func (suite *Suite) TestServer_PostURLJSON() {
+
+	suite.e.Use(suite.mw.SessionWithCookies)
+	suite.e.POST("/api/shorten", suite.srv.PostURLJSON)
+
+	type want struct {
+		code int
+	}
+	tests := []struct {
+		name string
+		URL  RequestURL
+		want want
+	}{
+		{
+			name: "Test PostURLJSON Code 201",
+			URL: RequestURL{
+				URL: "https://www.yandex.ru",
+			},
+			want: want{
+				code: http.StatusCreated,
+			},
+		},
+		{
+			name: "Test PostURLJSON Code 400",
+			URL: RequestURL{
+				URL: "",
+			},
+			want: want{
+				code: http.StatusBadRequest,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		suite.T().Run(tt.name, func(t *testing.T) {
+			reqBody, _ := json.Marshal(tt.URL)
+			payload := strings.NewReader(string(reqBody))
+			client := resty.New()
+			res, err := client.R().SetBody(payload).Post(suite.testSrv.URL + "/api/shorten")
+			if err != nil {
+				t.Fatalf("Could not perform JSON POST request")
+			}
+			//t.Logf(string(res.Body()))
+			assert.Equal(t, tt.want.code, res.StatusCode())
+		})
+	}
+	defer suite.testSrv.Close()
+
+}
+
+func (suite *Suite) TestServer_GetURL() {
+
+	ShortURL := "http://localhost:8080/f845599b098517893fc2712d32774f53"
+	BaseURL := "https://www.yandex.ru"
+	userID := uuid.New().String()
+
+	suite.e.GET("/:urlID", suite.srv.GetURL)
+	suite.db.SetShortURL(userID, ShortURL, BaseURL)
+
+	type want struct {
+		code int
 	}
 	tests := []struct {
 		name     string
-		args     args
-		wantCode int
+		ShortURL string
+		want     want
 	}{
 		{
 			name:     "Test GetURL Code 307",
-			wantCode: http.StatusTemporaryRedirect,
-			args: args{
-				db:       ram.NewDB(),
-				cfg:      config.NewConfig(":8080", "http://localhost:8080", ""),
-				usr:      users.New(),
-				baseURL:  "https://www.yandex.ru",
-				shortURL: "http://localhost:8080/f845599b098517893fc2712d32774f53",
-				paramID:  "f845599b098517893fc2712d32774f53",
+			ShortURL: "f845599b098517893fc2712d32774f53",
+			want: want{
+				code: http.StatusTemporaryRedirect,
 			},
 		},
 		{
 			name:     "Test PostURL Code 400",
-			wantCode: http.StatusBadRequest,
-			args: args{
-				db:       ram.NewDB(),
-				cfg:      config.NewConfig(":8080", "http://localhost:8080", ""),
-				usr:      users.New(),
-				baseURL:  "https://www.yandex.ru",
-				shortURL: "http://localhost:8080/f845599b098517893fc2712d32774f53",
-				paramID:  "",
+			ShortURL: "620f2a73709959c2a511d9be58e2f9ff",
+			want: want{
+				code: http.StatusBadRequest,
 			},
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			e := echo.New()
-			srv := New(tt.args.db, tt.args.cfg, tt.args.usr)
+		suite.T().Run(tt.name, func(t *testing.T) {
+			client := resty.New()
+			client.SetRedirectPolicy(resty.RedirectPolicyFunc(func(req *http.Request, via []*http.Request) error {
+				return http.ErrUseLastResponse
+			}))
 
-			req := httptest.NewRequest(http.MethodGet, "http://localhost:8080", nil)
-			rec := httptest.NewRecorder()
-			c := e.NewContext(req, rec)
-			userID := uuid.New().String()
-			_ = srv.db.SetShortURL(userID, tt.args.shortURL, tt.args.baseURL)
-			c.SetPath("/:id")
-			c.SetParamNames("id")
-			c.SetParamValues(tt.args.paramID)
-
-			handler := srv.GetURL(c)
-
-			if assert.NoError(t, handler) {
-				assert.Equal(t, tt.wantCode, rec.Code)
+			res, err := client.R().SetPathParams(map[string]string{"urlID": tt.ShortURL}).Get(suite.testSrv.URL + "/{urlID}")
+			if err != nil {
+				t.Fatalf(err.Error())
 			}
-
+			assert.Equal(t, tt.want.code, res.StatusCode())
 		})
 	}
+	defer suite.testSrv.Close()
 }
 
-func TestServer_PostURLJSON(t *testing.T) {
-	type args struct {
-		db            *ram.DB
-		cfg           *config.Config
-		usr           *users.DBUsers
-		valueBodyJSON string
+func (suite *Suite) TestServer_GetURLsByUserID() {
+	ShortURL1 := "http://localhost:8080/f845599b098517893fc2712d32774f53"
+	BaseURL1 := "https://www.yandex.ru"
+	userID1 := uuid.New().String()
+	token1, _ := suite.usr.CreateCookie(userID1)
+	userID2 := uuid.New().String()
+	token2, _ := suite.usr.CreateCookie(userID2)
+	suite.db.SetShortURL(userID1, ShortURL1, BaseURL1)
+	suite.e.Use(suite.mw.SessionWithCookies)
+	suite.e.GET("/api/user/urls", suite.srv.GetURLsByUserID)
+
+	type want struct {
+		code int
 	}
 	tests := []struct {
-		name     string
-		wantCode int
-		args     args
+		name  string
+		token string
+		want  want
 	}{
 		{
-			name:     "Test PostURLJSON Code 201",
-			wantCode: http.StatusCreated,
-			args: args{
-				db:            ram.NewDB(),
-				cfg:           config.NewConfig(":8080", "http://localhost:8080/", ""),
-				usr:           users.New(),
-				valueBodyJSON: `{"url": "https://www.yandex.ru"}`,
+			name:  "Test GetURLsByUserID Code 200",
+			token: token1,
+			want: want{
+				code: http.StatusOK,
 			},
 		},
 		{
-			name:     "Test PostURLJSON Code 400",
-			wantCode: http.StatusBadRequest,
-			args: args{
-				db:            ram.NewDB(),
-				cfg:           config.NewConfig(":8080", "http://localhost:8080/", ""),
-				usr:           users.New(),
-				valueBodyJSON: `{"url": ""}`,
+			name:  "Test GetURLsByUserID Code 204",
+			token: token2,
+			want: want{
+				code: http.StatusNoContent,
 			},
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-
-			srv := New(tt.args.db, tt.args.cfg, tt.args.usr)
-
-			mw := middlewares.New(tt.args.usr)
-			e := echo.New()
-			e.Use(mw.SessionWithCookies)
-			req := httptest.NewRequest(
-				http.MethodPost, "http://localhost:8080", strings.NewReader(tt.args.valueBodyJSON),
-			)
-			rec := httptest.NewRecorder()
-			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-			c := e.NewContext(req, rec)
-			c.SetPath("/api/shorten")
-
-			handler := srv.PostURLJSON(c)
-
-			if assert.NoError(t, handler) {
-				assert.Equal(t, tt.wantCode, rec.Code)
-				//assert.Equal(t, userJSON, rec.Body.String())
+		suite.T().Run(tt.name, func(t *testing.T) {
+			client := resty.New()
+			client.SetCookie(&http.Cookie{
+				Name:  "cookie",
+				Value: tt.token,
+				Path:  "/",
+			})
+			res, err := client.R().Get(suite.testSrv.URL + "/api/user/urls")
+			if err != nil {
+				t.Fatalf("Could not perform GET by userID request")
 			}
-
+			assert.Equal(t, tt.want.code, res.StatusCode())
 		})
 	}
-}
-
-func TestServer_GetURLsByUserID(t *testing.T) {
-	type args struct {
-		db       *ram.DB
-		cfg      *config.Config
-		usr      *users.DBUsers
-		isWrite  bool
-		baseURL  string
-		shortURL string
-	}
-	tests := []struct {
-		name     string
-		args     args
-		wantCode int
-	}{
-		/*		{
-				name:     "Test GetURLsByUserID Code 200",
-				wantCode: http.StatusOK,
-				args: args{
-					db:       ram.NewDB(),
-					cfg:      config.NewConfig(":8080", "http://localhost:8080", ""),
-					usr:      users.New(),
-					isWrite:  true,
-					baseURL:  "https://www.yandex.ru",
-					shortURL: "http://localhost:8080/f845599b098517893fc2712d32774f53",
-				},
-			},*/
-		{
-			name:     "Test GetURLsByUserID Code 204",
-			wantCode: http.StatusNoContent,
-			args: args{
-				db:      ram.NewDB(),
-				cfg:     config.NewConfig(":8080", "http://localhost:8080", ""),
-				usr:     users.New(),
-				isWrite: false,
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			mw := middlewares.New(tt.args.usr)
-			e := echo.New()
-			e.Use(mw.SessionWithCookies)
-			srv := New(tt.args.db, tt.args.cfg, tt.args.usr)
-
-			req := httptest.NewRequest(http.MethodGet, "http://localhost:8080", nil)
-			rec := httptest.NewRecorder()
-			c := e.NewContext(req, rec)
-			/*			userID1 := uuid.New().String()
-						userID2 := uuid.New().String()*/
-			/*			if tt.args.isWrite {
-						_ = srv.db.SetShortURL(userID1, tt.args.shortURL1, tt.args.baseURL1)
-						_ = srv.db.SetShortURL(userID2, tt.args.shortURL2, tt.args.baseURL2)
-					}*/
-
-			handler := srv.GetURLsByUserID(c)
-
-			if assert.NoError(t, handler) {
-				assert.Equal(t, tt.wantCode, rec.Code)
-			}
-
-		})
-	}
+	defer suite.testSrv.Close()
 }

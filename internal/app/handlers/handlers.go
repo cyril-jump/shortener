@@ -58,12 +58,12 @@ func (s Server) GetURL(c echo.Context) error {
 	)
 	var err error
 
-	if c.Param("id") == "" {
+	if c.Param("urlID") == "" {
 		return c.NoContent(http.StatusBadRequest)
 	} else {
 		hostName, err := s.cfg.Get("base_url")
 		utils.CheckErr(err, "base_url")
-		shortURL = hostName + "/" + c.Param("id")
+		shortURL = hostName + "/" + c.Param("urlID")
 	}
 
 	if baseURL, err = s.db.GetBaseURL(shortURL); err != nil {

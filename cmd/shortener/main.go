@@ -72,7 +72,7 @@ func main() {
 	e.Use(middleware.Decompress())
 	e.Use(mw.SessionWithCookies)
 	//Routes
-	e.GET("/:id", srv.GetURL)
+	e.GET("/:urlID", srv.GetURL)
 	e.GET("/api/user/urls", srv.GetURLsByUserID)
 	e.POST("/", srv.PostURL)
 	e.POST("/api/shorten", srv.PostURLJSON)
