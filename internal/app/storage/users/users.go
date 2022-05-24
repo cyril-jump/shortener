@@ -14,7 +14,7 @@ type DBUsers struct {
 func New() *DBUsers {
 	key, err := utils.GenerateRandom(16)
 	if err != nil {
-		log.Println("error: %v\n", err)
+		log.Printf("error: %v\n", err)
 	}
 	return &DBUsers{
 		randNum: key,

@@ -5,7 +5,6 @@ import (
 	"github.com/cyril-jump/shortener/internal/app/config"
 	"github.com/cyril-jump/shortener/internal/app/storage"
 	"github.com/cyril-jump/shortener/internal/app/utils"
-	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"io"
 	"net/http"
@@ -32,16 +31,8 @@ func (s Server) PostURL(c echo.Context) error {
 		shortURL, baseURL, userID string
 	)
 
-	_, err := c.Cookie("cookie")
-	if err != nil {
-		userID = uuid.New().String()
-		cookie := new(http.Cookie)
-		cookie.Path = "/"
-		cookie.Value, _ = s.usr.CreateCookie(userID)
-		cookie.Name = "cookie"
-		c.SetCookie(cookie)
-		c.Request().AddCookie(cookie)
-	}
+	cookie, _ := c.Request().Cookie("cookie")
+	userID, _ = s.usr.CheckCookie(cookie.Value)
 
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil || len(body) == 0 {
@@ -96,16 +87,8 @@ func (s Server) PostURLJSON(c echo.Context) error {
 		userID string
 	)
 
-	_, err := c.Cookie("cookie")
-	if err != nil {
-		userID = uuid.New().String()
-		cookie := new(http.Cookie)
-		cookie.Path = "/"
-		cookie.Value, _ = s.usr.CreateCookie(userID)
-		cookie.Name = "cookie"
-		c.SetCookie(cookie)
-		c.Request().AddCookie(cookie)
-	}
+	cookie, _ := c.Request().Cookie("cookie")
+	userID, _ = s.usr.CheckCookie(cookie.Value)
 
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil || len(body) == 0 {
@@ -143,16 +126,8 @@ func (s Server) GetURLsByUserID(c echo.Context) error {
 	var URLs []storage.ModelURL
 	var err error
 
-	_, err = c.Cookie("cookie")
-	if err != nil {
-		userID = uuid.New().String()
-		cookie := new(http.Cookie)
-		cookie.Path = "/"
-		cookie.Value, _ = s.usr.CreateCookie(userID)
-		cookie.Name = "cookie"
-		c.SetCookie(cookie)
-		c.Request().AddCookie(cookie)
-	}
+	cookie, _ := c.Request().Cookie("cookie")
+	userID, _ = s.usr.CheckCookie(cookie.Value)
 
 	if URLs, err = s.db.GetAllURLsByUserID(userID); err != nil {
 		return c.NoContent(http.StatusNoContent)
