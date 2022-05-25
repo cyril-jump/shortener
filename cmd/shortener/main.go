@@ -56,11 +56,11 @@ func main() {
 	fileStoragePath, err := cfg.Get("file_storage_path")
 	utils.CheckErr(err, "file_storage_path")
 
-	if psqlConn != "" {
-		db = postgres.New(psqlConn)
-	} else if fileStoragePath != "" {
+	if fileStoragePath != "" {
 		db, err = rom.NewDB(fileStoragePath)
 		utils.CheckErr(err, "")
+	} else if psqlConn != "" {
+		db = postgres.New(psqlConn)
 	} else {
 		db = ram.NewDB()
 	}
