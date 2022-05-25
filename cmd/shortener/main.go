@@ -105,5 +105,8 @@ func main() {
 	if err = e.Shutdown(ctx); err != nil && err != ctx.Err() {
 		e.Logger.Fatal(err)
 	}
-	//db.Close()
+
+	if err = db.Close(); err != nil {
+		log.Fatal(err)
+	}
 }
