@@ -57,6 +57,10 @@ func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
 	return nil
 }
 
+func (D *DB) Ping() error {
+	return nil
+}
+
 func (D *DB) Close() {
 	D.DataCache = nil
 }

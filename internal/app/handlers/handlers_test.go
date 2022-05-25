@@ -22,15 +22,6 @@ type (
 	RequestURL struct {
 		URL string `json:"url"`
 	}
-	// for_TestServer_PostURLJSON
-	ResponseURL struct {
-		ShortURL string `json:"result"`
-	}
-
-	ResponseFullURL struct {
-		URL  string `json:"original_url"`
-		SURL string `json:"short_url"`
-	}
 )
 
 type Suite struct {
@@ -49,7 +40,11 @@ func (suite *Suite) SetupTest() {
 	suite.e = echo.New()
 	suite.router = echo.NewRouter(suite.e)
 	suite.db = ram.NewDB()
-	suite.cfg = config.NewConfig(":8080", "http://localhost:8080", "")
+	suite.cfg = config.NewConfig(
+		":8080",
+		"http://localhost:8080",
+		"",
+		"postgres://dmosk:dmosk@localhost:5432/dmosk?sslmode=disable")
 	suite.usr = users.New()
 	suite.router = echo.NewRouter(suite.e)
 	suite.testSrv = httptest.NewServer(suite.e)

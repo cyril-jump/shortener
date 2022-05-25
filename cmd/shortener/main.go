@@ -7,6 +7,7 @@ import (
 	"github.com/cyril-jump/shortener/internal/app/handlers"
 	"github.com/cyril-jump/shortener/internal/app/middlewares"
 	"github.com/cyril-jump/shortener/internal/app/storage"
+	"github.com/cyril-jump/shortener/internal/app/storage/postgres"
 	"github.com/cyril-jump/shortener/internal/app/storage/ram"
 	"github.com/cyril-jump/shortener/internal/app/storage/rom"
 	"github.com/cyril-jump/shortener/internal/app/storage/users"
@@ -32,6 +33,7 @@ func init() {
 	flag.StringVarP(&config.Flags.ServerAddress, "address", "a", config.EnvVar.ServerAddress, "server address")
 	flag.StringVarP(&config.Flags.BaseURL, "base", "b", config.EnvVar.BaseURL, "base url")
 	flag.StringVarP(&config.Flags.FileStoragePath, "file", "f", config.EnvVar.FileStoragePath, "file storage path")
+	flag.StringVarP(&config.Flags.DatabaseDSN, "psqlConn", "d", config.EnvVar.DatabaseDSN, "database URL conn")
 	flag.Parse()
 
 }
@@ -46,7 +48,10 @@ func main() {
 	var db storage.DB
 
 	//config
-	cfg := config.NewConfig(config.Flags.ServerAddress, config.Flags.BaseURL, config.Flags.FileStoragePath)
+	cfg := config.NewConfig(config.Flags.ServerAddress, config.Flags.BaseURL, config.Flags.FileStoragePath, config.Flags.DatabaseDSN)
+
+	psqlConn, err := cfg.Get("database_dsn")
+	utils.CheckErr(err, "")
 
 	fileStoragePath, err := cfg.Get("file_storage_path")
 	utils.CheckErr(err, "file_storage_path")
@@ -54,6 +59,8 @@ func main() {
 	if fileStoragePath != "" {
 		db, err = rom.NewDB(fileStoragePath)
 		utils.CheckErr(err, "")
+	} else if psqlConn != "" {
+		db = postgres.New(psqlConn)
 	} else {
 		db = ram.NewDB()
 	}
@@ -74,6 +81,7 @@ func main() {
 	//Routes
 	e.GET("/:urlID", srv.GetURL)
 	e.GET("/api/user/urls", srv.GetURLsByUserID)
+	e.GET("/ping", srv.PingDB)
 	e.POST("/", srv.PostURL)
 	e.POST("/api/shorten", srv.PostURLJSON)
 
@@ -97,6 +105,5 @@ func main() {
 	if err = e.Shutdown(ctx); err != nil && err != ctx.Err() {
 		e.Logger.Fatal(err)
 	}
-	db.Close()
-
+	//db.Close()
 }

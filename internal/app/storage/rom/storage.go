@@ -62,13 +62,6 @@ func NewDB(filepath string) (*DB, error) {
 	}, nil
 }
 
-func (D *DB) Close() {
-	D.DataCache = nil
-	if err := D.file.Close(); err != nil {
-		log.Fatal(err)
-	}
-}
-
 func (D *DB) GetBaseURL(shortURL string) (string, error) {
 	if v, ok := D.GlobalBD[shortURL]; ok {
 		return v, nil
@@ -108,4 +101,15 @@ func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
 	D.DataCache[userID] = append(D.DataCache[userID], modelURL)
 
 	return D.encoder.Encode(&D.DataFile)
+}
+
+func (D *DB) Ping() error {
+	return nil
+}
+
+func (D *DB) Close() {
+	D.DataCache = nil
+	if err := D.file.Close(); err != nil {
+		log.Fatal(err)
+	}
 }

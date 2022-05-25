@@ -16,9 +16,9 @@ type Server struct {
 	usr storage.Users
 }
 
-func New(storage storage.DB, config config.Cfg, usr storage.Users) *Server {
+func New(db storage.DB, config config.Cfg, usr storage.Users) *Server {
 	return &Server{
-		db:  storage,
+		db:  db,
 		cfg: config,
 		usr: usr,
 	}
@@ -41,8 +41,6 @@ func (s Server) PostURL(c echo.Context) error {
 
 	hostName, err := s.cfg.Get("base_url")
 	utils.CheckErr(err, "base_url")
-
-	//userID, _ = s.usr.GetUserID(userName)
 
 	shortURL = utils.Hash(body, hostName)
 	baseURL = string(body)
@@ -134,4 +132,12 @@ func (s Server) GetURLsByUserID(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, URLs)
+}
+
+func (s Server) PingDB(c echo.Context) error {
+
+	if err := s.db.Ping(); err != nil {
+		return c.NoContent(http.StatusInternalServerError)
+	}
+	return c.NoContent(http.StatusOK)
 }

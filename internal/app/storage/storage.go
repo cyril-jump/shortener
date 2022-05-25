@@ -4,6 +4,7 @@ type DB interface {
 	GetBaseURL(shortURL string) (string, error)
 	GetAllURLsByUserID(userID string) ([]ModelURL, error)
 	SetShortURL(userID, shortURL, baseURL string) error
+	Ping() error
 	Close()
 }
 
