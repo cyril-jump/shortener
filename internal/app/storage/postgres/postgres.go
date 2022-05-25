@@ -16,6 +16,8 @@ func New(psqlConn string) *DB {
 	if err != nil {
 		log.Fatal(err)
 	}
+	// close database
+	//defer db.Close()
 
 	// check db
 	if err = db.Ping(); err != nil {
@@ -47,6 +49,6 @@ func (D *DB) Ping() error {
 	return D.db.Ping()
 }
 
-func (D *DB) Close() error {
-	return D.db.Close()
+func (D *DB) Close() {
+	D.Close()
 }

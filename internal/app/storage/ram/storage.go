@@ -61,7 +61,6 @@ func (D *DB) Ping() error {
 	return nil
 }
 
-func (D *DB) Close() error {
+func (D *DB) Close() {
 	D.DataCache = nil
-	return nil
 }
