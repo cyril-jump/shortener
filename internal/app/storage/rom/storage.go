@@ -107,9 +107,7 @@ func (D *DB) Ping() error {
 	return nil
 }
 
-func (D *DB) Close() {
+func (D *DB) Close() error {
 	D.DataCache = nil
-	if err := D.file.Close(); err != nil {
-		log.Fatal(err)
-	}
+	return D.file.Close()
 }
