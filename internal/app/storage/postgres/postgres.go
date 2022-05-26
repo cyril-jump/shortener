@@ -56,8 +56,8 @@ func (D *DB) Close() error {
 }
 
 var schema = `CREATE TABLE IF NOT EXISTS urls (
-			id bigserial,
-			user_id text,
-			url text,
-			short_url text
-);`
+		id bigserial not null,
+		user_id text not null,
+		url text not null unique,
+		short_url text not null 
+	);`
