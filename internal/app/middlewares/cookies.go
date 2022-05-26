@@ -4,6 +4,7 @@ import (
 	"github.com/cyril-jump/shortener/internal/app/storage"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
+	"log"
 	"net/http"
 )
 
@@ -38,6 +39,7 @@ func (M *MW) SessionWithCookies(next echo.HandlerFunc) echo.HandlerFunc {
 				cookie.Name = "cookie"
 				c.SetCookie(cookie)
 				c.Request().AddCookie(cookie)
+				log.Println("set COC")
 			}
 		}
 

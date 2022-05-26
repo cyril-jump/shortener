@@ -43,8 +43,27 @@ func (D *DB) GetAllURLsByUserID(userID string) ([]storage.ModelURL, error) {
 }
 
 func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
-	//TODO implement me
-	panic("implement me")
+	var URL string
+	selectStmt, err := D.db.Prepare("SELECT short_url FROM urls WHERE url=$1 and user_id=$2;")
+	if err != nil {
+		return err
+	}
+
+	defer selectStmt.Close()
+	err = selectStmt.QueryRow(baseURL, userID).Scan(&URL)
+	if err != nil {
+		log.Println(err)
+		insertStmt, err := D.db.Prepare("INSERT INTO urls (user_id, url, short_url) VALUES ($1, $2, $3);")
+		defer insertStmt.Close()
+		if err != nil {
+			return err
+		}
+		_, err = insertStmt.Exec(userID, baseURL, shortURL)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (D *DB) Ping() error {
@@ -58,6 +77,6 @@ func (D *DB) Close() error {
 var schema = `CREATE TABLE IF NOT EXISTS urls (
 		id bigserial not null,
 		user_id text not null,
-		url text not null unique,
+		url text not null,
 		short_url text not null 
 	);`
