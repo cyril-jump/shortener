@@ -170,7 +170,7 @@ func (s Server) PostURLsBATCH(c echo.Context) error {
 		}
 	}
 
-	return c.JSON(http.StatusOK, response)
+	return c.JSON(http.StatusCreated, response)
 }
 
 func (s Server) PingDB(c echo.Context) error {
