@@ -44,20 +44,42 @@ func (D *DB) GetAllURLsByUserID(userID string) ([]storage.ModelURL, error) {
 
 func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
 	var URL string
-
-	err := D.db.QueryRow("SELECT short_url FROM urls WHERE url=$1 and user_id=$2;",
-		baseURL, userID).Scan(&URL)
+	selectStmt, err := D.db.Prepare("SELECT short_url FROM urls WHERE url=$1 and user_id=$2;")
 	if err != nil {
-		log.Println(err)
-		_, err = D.db.Exec("INSERT INTO urls (user_id, url, short_url) VALUES ($1,$2, $3);",
-			userID, baseURL, shortURL)
+		return err
+	}
+	defer selectStmt.Close()
+
+	insertStmt, err := D.db.Prepare("INSERT INTO urls (user_id, url, short_url) VALUES ($1, $2, $3);")
+	if err != nil {
+		return err
+	}
+	defer insertStmt.Close()
+
+	if err = selectStmt.QueryRow(baseURL, userID).Scan(&URL); err == sql.ErrNoRows {
+		_, err = insertStmt.Exec(userID, baseURL, shortURL)
 		if err != nil {
-			log.Println(err)
 			return err
 		}
-
 	}
-	return nil
+
+	return err
+}
+
+func (D *DB) SetShortURLBatch(modelURL string, modelURLs []storage.ModelURLBatchRequest) ([]storage.ModelURLBatchResponse, error) {
+	var selectStmt, err = D.db.Prepare("SELECT short_url FROM urls WHERE url=$1 and user_id=$2;")
+	if err != nil {
+		return nil, err
+	}
+	defer selectStmt.Close()
+
+	insertStmt, err := D.db.Prepare("INSERT INTO urls (user_id, url, short_url) VALUES ($1, $2, $3);")
+	if err != nil {
+		return nil, err
+	}
+	defer insertStmt.Close()
+
+	return nil, err
 }
 
 func (D *DB) Ping() error {

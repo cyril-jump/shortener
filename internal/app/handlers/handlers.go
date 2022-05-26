@@ -7,6 +7,7 @@ import (
 	"github.com/cyril-jump/shortener/internal/app/utils"
 	"github.com/labstack/echo/v4"
 	"io"
+	"log"
 	"net/http"
 )
 
@@ -45,7 +46,9 @@ func (s Server) PostURL(c echo.Context) error {
 	shortURL = utils.Hash(body, hostName)
 	baseURL = string(body)
 
-	s.db.SetShortURL(userID, shortURL, baseURL)
+	if err := s.db.SetShortURL(userID, shortURL, baseURL); err != nil {
+		log.Println("Failed to write to DB: ", err)
+	}
 
 	return c.String(http.StatusCreated, shortURL)
 }
@@ -132,6 +135,42 @@ func (s Server) GetURLsByUserID(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, URLs)
+}
+
+func (s Server) PostURLsBATCH(c echo.Context) error {
+	var request []storage.ModelURLBatchRequest
+	var response []storage.ModelURLBatchResponse
+	var model storage.ModelURLBatchResponse
+	var (
+		userID string
+	)
+
+	cookie, _ := c.Request().Cookie("cookie")
+	userID, _ = s.usr.CheckCookie(cookie.Value)
+
+	body, err := io.ReadAll(c.Request().Body)
+	if err != nil || len(body) == 0 {
+		return c.NoContent(http.StatusBadRequest)
+	}
+
+	err = json.Unmarshal(body, &request)
+	if err != nil {
+		return c.NoContent(http.StatusBadRequest)
+	}
+
+	hostName, err := s.cfg.Get("base_url")
+	utils.CheckErr(err, "base_url")
+
+	for _, val := range request {
+		model.CorID = val.CorID
+		model.ShortURL = utils.Hash([]byte(val.BaseURL), hostName)
+		response = append(response, model)
+		if err := s.db.SetShortURL(userID, model.ShortURL, val.BaseURL); err != nil {
+			log.Println("Failed to write to DB: ", err)
+		}
+	}
+
+	return c.JSON(http.StatusOK, response)
 }
 
 func (s Server) PingDB(c echo.Context) error {

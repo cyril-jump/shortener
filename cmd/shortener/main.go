@@ -84,6 +84,7 @@ func main() {
 	e.GET("/ping", srv.PingDB)
 	e.POST("/", srv.PostURL)
 	e.POST("/api/shorten", srv.PostURLJSON)
+	e.POST("/api/shorten/batch", srv.PostURLsBATCH)
 
 	// Start Server
 
