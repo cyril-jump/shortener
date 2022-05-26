@@ -3,7 +3,7 @@ package postgres
 import (
 	"database/sql"
 	"github.com/cyril-jump/shortener/internal/app/storage"
-	_ "github.com/lib/pq"
+	_ "github.com/jackc/pgx/v4/stdlib"
 	"log"
 )
 
@@ -12,13 +12,17 @@ type DB struct {
 }
 
 func New(psqlConn string) *DB {
-	db, err := sql.Open("postgres", psqlConn)
+	db, err := sql.Open("pgx", psqlConn)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// check db
 	if err = db.Ping(); err != nil {
+		log.Fatal(err)
+	}
+
+	if _, err = db.Exec(schema); err != nil {
 		log.Fatal(err)
 	}
 
@@ -50,3 +54,10 @@ func (D *DB) Ping() error {
 func (D *DB) Close() error {
 	return D.db.Close()
 }
+
+var schema = `CREATE TABLE IF NOT EXISTS urls (
+			id bigserial,
+			user_id text,
+			url text,
+			short_url text
+);`
