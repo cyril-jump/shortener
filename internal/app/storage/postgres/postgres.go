@@ -33,8 +33,18 @@ func New(psqlConn string) *DB {
 }
 
 func (D *DB) GetBaseURL(shortURL string) (string, error) {
-	//TODO implement me
-	panic("implement me")
+	var URL string
+	selectStmt, err := D.db.Prepare("SELECT short_url FROM urls WHERE url=$1;")
+	if err != nil {
+		return "", err
+	}
+	defer selectStmt.Close()
+
+	if err = selectStmt.QueryRow(shortURL).Scan(&URL); err != sql.ErrNoRows {
+		return URL, nil
+	}
+	return "", nil
+
 }
 
 func (D *DB) GetAllURLsByUserID(userID string) ([]storage.ModelURL, error) {
