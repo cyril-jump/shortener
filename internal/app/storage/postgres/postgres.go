@@ -44,32 +44,15 @@ func (D *DB) GetAllURLsByUserID(userID string) ([]storage.ModelURL, error) {
 
 func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
 	var URL string
-	var selectStmt, err = D.db.Prepare("SELECT short_url FROM urls WHERE url=$1 and user_id=$2;")
-	if err != nil {
-		return err
-	}
 
-	defer func(selectStmt *sql.Stmt) {
-		err := selectStmt.Close()
-		if err != nil {
-
-		}
-	}(selectStmt)
-	err = selectStmt.QueryRow(baseURL, userID).Scan(&URL)
+	err := D.db.QueryRow("SELECT short_url FROM urls WHERE url=$1 and user_id=$2;",
+		baseURL, userID).Scan(&URL)
 	if err != nil {
 		log.Println(err)
-		var insertStmt, err = D.db.Prepare("INSERT INTO urls (user_id, url, short_url) VALUES ($1, $2, $3);")
+		_, err = D.db.Exec("INSERT INTO urls (user_id, url, short_url) VALUES ($1,$2, $3);",
+			userID, baseURL, shortURL)
 		if err != nil {
-			return err
-		}
-		defer func(insertStmt *sql.Stmt) {
-			err := insertStmt.Close()
-			if err != nil {
-
-			}
-		}(insertStmt)
-		_, err = insertStmt.Exec(userID, baseURL, shortURL)
-		if err != nil {
+			log.Println(err)
 			return err
 		}
 
