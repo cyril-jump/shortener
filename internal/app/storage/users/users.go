@@ -8,16 +8,19 @@ import (
 )
 
 type DBUsers struct {
-	randNum []byte
+	cookieKey string
+	randNum   []byte
 }
 
 func New() *DBUsers {
+	cookei := "cookie"
 	key, err := utils.GenerateRandom(16)
 	if err != nil {
 		log.Printf("error: %v\n", err)
 	}
 	return &DBUsers{
-		randNum: key,
+		randNum:   key,
+		cookieKey: cookei,
 	}
 }
 
@@ -39,4 +42,8 @@ func (MU *DBUsers) CheckCookie(tokenString string) (string, bool) {
 		return fmt.Sprintf("%s", claims["user"]), ok
 	}
 	return "", false
+}
+
+func (MU *DBUsers) GetCookieKey() string {
+	return MU.cookieKey
 }

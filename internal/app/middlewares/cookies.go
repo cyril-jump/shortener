@@ -20,7 +20,7 @@ func New(users storage.Users) *MW {
 func (M *MW) SessionWithCookies(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 
-		cookie, err := c.Cookie("cookie")
+		cookie, err := c.Cookie(M.users.GetCookieKey())
 		if err != nil {
 			userID := uuid.New().String()
 			cookie := new(http.Cookie)

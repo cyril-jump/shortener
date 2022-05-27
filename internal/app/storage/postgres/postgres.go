@@ -33,42 +33,68 @@ func New(psqlConn string) *DB {
 }
 
 func (D *DB) GetBaseURL(shortURL string) (string, error) {
-	var URL string
-	selectStmt, err := D.db.Prepare("SELECT url FROM urls WHERE short_url=$1;")
+	var baseURL string
+	selectStmt, err := D.db.Prepare("SELECT base_url FROM urls WHERE short_url=$1;")
 	if err != nil {
 		return "", err
 	}
 	defer selectStmt.Close()
 
-	if err = selectStmt.QueryRow(shortURL).Scan(&URL); err != nil {
+	if err = selectStmt.QueryRow(shortURL).Scan(&baseURL); err != nil {
 		return "", err
 	}
-	return URL, nil
+	return baseURL, nil
 
 }
 
 func (D *DB) GetAllURLsByUserID(userID string) ([]storage.ModelURL, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
-	var URL string
-	selectStmt, err := D.db.Prepare("SELECT short_url FROM urls WHERE url=$1 and user_id=$2;")
+	var modelURL []storage.ModelURL
+	var model storage.ModelURL
+	selectStmt, err := D.db.Prepare("SELECT short_url, base_url FROM users_url RIGHT JOIN urls u on users_url.url_id=u.id WHERE user_id=$1;")
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer selectStmt.Close()
 
-	insertStmt, err := D.db.Prepare("INSERT INTO urls (user_id, url, short_url) VALUES ($1, $2, $3);")
+	row, err := selectStmt.Query(userID)
+
+	if err != nil {
+		return nil, err
+	}
+	defer row.Close()
+
+	for row.Next() {
+		err := row.Scan(&model.ShortURL, &model.BaseURL)
+		log.Println(model)
+		if err != nil {
+			return nil, err
+		}
+		modelURL = append(modelURL, model)
+	}
+
+	return modelURL, nil
+}
+
+func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
+	var id int
+	//selectStmt, err := D.db.Prepare("SELECT short_url FROM urls WHERE url=$1 and user_id=$2;")
+	insertStmt1, err := D.db.Prepare("INSERT INTO urls (base_url, short_url) VALUES ($1, $2) RETURNING id")
 	if err != nil {
 		return err
 	}
-	defer insertStmt.Close()
+	defer insertStmt1.Close()
 
-	if err = selectStmt.QueryRow(baseURL, userID).Scan(&URL); err == sql.ErrNoRows {
-		_, err = insertStmt.Exec(userID, baseURL, shortURL)
+	insertStmt2, err := D.db.Prepare("INSERT INTO users_url (user_id, url_id) VALUES ($1, $2);")
+	if err != nil {
+		return err
+	}
+	defer insertStmt2.Close()
+
+	insertStmt1.QueryRow(baseURL, shortURL).Scan(&id)
+	if id != 0 {
+		_, err = insertStmt2.Exec(userID, id)
 		if err != nil {
+			log.Println(err)
 			return err
 		}
 	}
@@ -84,9 +110,14 @@ func (D *DB) Close() error {
 	return D.db.Close()
 }
 
-var schema = `CREATE TABLE IF NOT EXISTS urls (
-		id bigserial not null,
-		user_id text not null,
-		url text not null,
+var schema = `
+	CREATE TABLE IF NOT EXISTS urls (
+		id serial primary key,
+		base_url text not null,
 		short_url text not null 
-	);`
+	);
+	CREATE TABLE IF NOT EXISTS users_url(
+	  user_id text not null,
+	  url_id int not null references urls(id)
+	);
+	`

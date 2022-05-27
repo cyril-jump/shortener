@@ -32,7 +32,7 @@ func (s Server) PostURL(c echo.Context) error {
 		shortURL, baseURL, userID string
 	)
 
-	cookie, _ := c.Request().Cookie("cookie")
+	cookie, _ := c.Request().Cookie(s.usr.GetCookieKey())
 	userID, _ = s.usr.CheckCookie(cookie.Value)
 
 	body, err := io.ReadAll(c.Request().Body)
@@ -88,7 +88,7 @@ func (s Server) PostURLJSON(c echo.Context) error {
 		userID string
 	)
 
-	cookie, _ := c.Request().Cookie("cookie")
+	cookie, _ := c.Request().Cookie(s.usr.GetCookieKey())
 	userID, _ = s.usr.CheckCookie(cookie.Value)
 
 	body, err := io.ReadAll(c.Request().Body)
@@ -127,10 +127,10 @@ func (s Server) GetURLsByUserID(c echo.Context) error {
 	var URLs []storage.ModelURL
 	var err error
 
-	cookie, _ := c.Request().Cookie("cookie")
+	cookie, _ := c.Request().Cookie(s.usr.GetCookieKey())
 	userID, _ = s.usr.CheckCookie(cookie.Value)
 
-	if URLs, err = s.db.GetAllURLsByUserID(userID); err != nil {
+	if URLs, err = s.db.GetAllURLsByUserID(userID); err != nil || URLs == nil {
 		return c.NoContent(http.StatusNoContent)
 	}
 
@@ -145,7 +145,7 @@ func (s Server) PostURLsBATCH(c echo.Context) error {
 		userID string
 	)
 
-	cookie, _ := c.Request().Cookie("cookie")
+	cookie, _ := c.Request().Cookie(s.usr.GetCookieKey())
 	userID, _ = s.usr.CheckCookie(cookie.Value)
 
 	body, err := io.ReadAll(c.Request().Body)
