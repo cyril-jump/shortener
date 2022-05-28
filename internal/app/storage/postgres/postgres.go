@@ -112,7 +112,7 @@ func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
 		}
 	} else {
 		selectStmt.QueryRow(baseURL).Scan(&userURLID)
-		_, err := insertStmt2.ExecContext(D.ctx, userID, userURLID)
+		_, err := insertStmt2.Exec(userID, userURLID)
 		if err != nil {
 			return errs.ErrAlreadyExists
 		}
