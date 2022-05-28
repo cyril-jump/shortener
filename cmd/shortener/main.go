@@ -57,12 +57,12 @@ func main() {
 	utils.CheckErr(err, "file_storage_path")
 
 	if fileStoragePath != "" {
-		db, err = rom.NewDB(fileStoragePath)
+		db, err = rom.NewDB(ctx, fileStoragePath)
 		utils.CheckErr(err, "")
 	} else if psqlConn != "" {
-		db = postgres.New(psqlConn)
+		db = postgres.New(ctx, psqlConn)
 	} else {
-		db = ram.NewDB()
+		db = ram.NewDB(ctx)
 	}
 	usr := users.New()
 	//server

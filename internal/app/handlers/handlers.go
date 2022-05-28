@@ -2,9 +2,11 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/cyril-jump/shortener/internal/app/config"
 	"github.com/cyril-jump/shortener/internal/app/storage"
 	"github.com/cyril-jump/shortener/internal/app/utils"
+	"github.com/cyril-jump/shortener/internal/app/utils/errs"
 	"github.com/labstack/echo/v4"
 	"io"
 	"log"
@@ -47,7 +49,10 @@ func (s Server) PostURL(c echo.Context) error {
 	baseURL = string(body)
 
 	if err := s.db.SetShortURL(userID, shortURL, baseURL); err != nil {
-		log.Println("Failed to write to DB: ", err)
+		if errors.Is(err, errs.ErrAlreadyExists) {
+			return c.JSON(http.StatusConflict, shortURL)
+		}
+		return c.NoContent(http.StatusBadRequest)
 	}
 
 	return c.String(http.StatusCreated, shortURL)

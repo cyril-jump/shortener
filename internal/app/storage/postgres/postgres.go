@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"database/sql"
 	"github.com/cyril-jump/shortener/internal/app/storage"
 	_ "github.com/jackc/pgx/v4/stdlib"
@@ -8,10 +9,26 @@ import (
 )
 
 type DB struct {
-	db *sql.DB
+	db  *sql.DB
+	ctx context.Context
 }
 
-func New(psqlConn string) *DB {
+func (D *DB) GetBaseURL(shortURL string) (string, error) {
+	var baseURL string
+	selectStmt, err := D.db.Prepare("SELECT base_url FROM urls WHERE short_url=$1;")
+	if err != nil {
+		return "", err
+	}
+	defer selectStmt.Close()
+
+	if err = selectStmt.QueryRow(shortURL).Scan(&baseURL); err != nil {
+		return "", err
+	}
+	return baseURL, nil
+
+}
+
+func New(ctx context.Context, psqlConn string) *DB {
 	db, err := sql.Open("pgx", psqlConn)
 	if err != nil {
 		log.Fatal(err)
@@ -32,21 +49,6 @@ func New(psqlConn string) *DB {
 	}
 }
 
-func (D *DB) GetBaseURL(shortURL string) (string, error) {
-	var baseURL string
-	selectStmt, err := D.db.Prepare("SELECT base_url FROM urls WHERE short_url=$1;")
-	if err != nil {
-		return "", err
-	}
-	defer selectStmt.Close()
-
-	if err = selectStmt.QueryRow(shortURL).Scan(&baseURL); err != nil {
-		return "", err
-	}
-	return baseURL, nil
-
-}
-
 func (D *DB) GetAllURLsByUserID(userID string) ([]storage.ModelURL, error) {
 	var modelURL []storage.ModelURL
 	var model storage.ModelURL
@@ -57,15 +59,17 @@ func (D *DB) GetAllURLsByUserID(userID string) ([]storage.ModelURL, error) {
 	defer selectStmt.Close()
 
 	row, err := selectStmt.Query(userID)
-
 	if err != nil {
 		return nil, err
 	}
 	defer row.Close()
 
+	if err = row.Err(); err != nil {
+		log.Println(err)
+	}
+
 	for row.Next() {
 		err := row.Scan(&model.ShortURL, &model.BaseURL)
-		log.Println(model)
 		if err != nil {
 			return nil, err
 		}
@@ -77,7 +81,8 @@ func (D *DB) GetAllURLsByUserID(userID string) ([]storage.ModelURL, error) {
 
 func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
 	var id int
-	//selectStmt, err := D.db.Prepare("SELECT short_url FROM urls WHERE url=$1 and user_id=$2;")
+	var userURLID int
+
 	insertStmt1, err := D.db.Prepare("INSERT INTO urls (base_url, short_url) VALUES ($1, $2) RETURNING id")
 	if err != nil {
 		return err
@@ -90,6 +95,12 @@ func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
 	}
 	defer insertStmt2.Close()
 
+	selectStmt, err := D.db.Prepare("SELECT id FROM urls WHERE base_url = $1;")
+	if err != nil {
+		return err
+	}
+	defer selectStmt.Close()
+
 	insertStmt1.QueryRow(baseURL, shortURL).Scan(&id)
 	if id != 0 {
 		_, err = insertStmt2.Exec(userID, id)
@@ -97,9 +108,17 @@ func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
 			log.Println(err)
 			return err
 		}
+	} else {
+		selectStmt.QueryRow(baseURL).Scan(&userURLID)
+		_, err = insertStmt2.Exec(userID, userURLID)
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+
 	}
 
-	return err
+	return nil
 }
 
 func (D *DB) Ping() error {
@@ -113,7 +132,7 @@ func (D *DB) Close() error {
 var schema = `
 	CREATE TABLE IF NOT EXISTS urls (
 		id serial primary key,
-		base_url text not null,
+		base_url text not null unique,
 		short_url text not null 
 	);
 	CREATE TABLE IF NOT EXISTS users_url(

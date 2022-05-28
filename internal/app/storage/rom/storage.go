@@ -2,6 +2,7 @@ package rom
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"github.com/cyril-jump/shortener/internal/app/storage"
 	"github.com/cyril-jump/shortener/internal/app/utils/errs"
@@ -17,6 +18,7 @@ type DB struct {
 	DataCache map[string][]storage.ModelURL
 	GlobalBD  map[string]string
 	encoder   *json.Encoder
+	ctx       context.Context
 }
 
 type ModelFile struct {
@@ -27,7 +29,7 @@ type ModelFile struct {
 
 //constructor
 
-func NewDB(filepath string) (*DB, error) {
+func NewDB(ctx context.Context, filepath string) (*DB, error) {
 
 	file, err := os.OpenFile(filepath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0777)
 	if err != nil {
@@ -59,6 +61,7 @@ func NewDB(filepath string) (*DB, error) {
 		DataCache: dataCache,
 		GlobalBD:  globalDB,
 		encoder:   json.NewEncoder(file),
+		ctx:       ctx,
 	}, nil
 }
 

@@ -1,6 +1,7 @@
 package ram
 
 import (
+	"context"
 	"github.com/cyril-jump/shortener/internal/app/storage"
 	"github.com/cyril-jump/shortener/internal/app/utils/errs"
 )
@@ -10,15 +11,17 @@ import (
 type DB struct {
 	DataCache map[string][]storage.ModelURL
 	GlobalBD  map[string]string
+	ctx       context.Context
 }
 
 //constructor
 
-func NewDB() *DB {
+func NewDB(ctx context.Context) *DB {
 
 	return &DB{
 		DataCache: make(map[string][]storage.ModelURL),
 		GlobalBD:  make(map[string]string),
+		ctx:       ctx,
 	}
 }
 
