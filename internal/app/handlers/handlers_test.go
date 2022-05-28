@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/cyril-jump/shortener/internal/app/config"
 	"github.com/cyril-jump/shortener/internal/app/middlewares"
@@ -34,12 +35,13 @@ type Suite struct {
 	testSrv *httptest.Server
 	mw      *middlewares.MW
 	srv     *Server
+	ctx     context.Context
 }
 
 func (suite *Suite) SetupTest() {
 	suite.e = echo.New()
 	suite.router = echo.NewRouter(suite.e)
-	suite.db = ram.NewDB()
+	suite.db = ram.NewDB(suite.ctx)
 	suite.cfg = config.NewConfig(
 		":8080",
 		"http://localhost:8080",
@@ -157,7 +159,7 @@ func (suite *Suite) TestServer_GetURL() {
 	userID := uuid.New().String()
 
 	suite.e.GET("/:urlID", suite.srv.GetURL)
-	suite.db.SetShortURL(userID, ShortURL, BaseURL)
+	_ = suite.db.SetShortURL(userID, ShortURL, BaseURL)
 
 	type want struct {
 		code int
@@ -206,7 +208,7 @@ func (suite *Suite) TestServer_GetURLsByUserID() {
 	token1, _ := suite.usr.CreateCookie(userID1)
 	userID2 := uuid.New().String()
 	token2, _ := suite.usr.CreateCookie(userID2)
-	suite.db.SetShortURL(userID1, ShortURL1, BaseURL1)
+	_ = suite.db.SetShortURL(userID1, ShortURL1, BaseURL1)
 	suite.e.Use(suite.mw.SessionWithCookies)
 	suite.e.GET("/api/user/urls", suite.srv.GetURLsByUserID)
 

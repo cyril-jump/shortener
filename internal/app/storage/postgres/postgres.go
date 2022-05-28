@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"github.com/cyril-jump/shortener/internal/app/storage"
+	"github.com/cyril-jump/shortener/internal/app/utils/errs"
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"log"
 )
@@ -105,15 +106,13 @@ func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
 	if id != 0 {
 		_, err = insertStmt2.Exec(userID, id)
 		if err != nil {
-			log.Println(err)
 			return err
 		}
 	} else {
 		selectStmt.QueryRow(baseURL).Scan(&userURLID)
 		_, err = insertStmt2.Exec(userID, userURLID)
 		if err != nil {
-			log.Println(err)
-			return err
+			return errs.ErrAlreadyExists
 		}
 
 	}
