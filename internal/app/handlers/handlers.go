@@ -116,8 +116,10 @@ func (s Server) PostURLJSON(c echo.Context) error {
 	//userID, _ = s.usr.GetUserID(userName)
 
 	response.ShortURL = utils.Hash([]byte(request.BaseURL), hostName)
-	err = s.db.SetShortURL(userID, response.ShortURL, request.BaseURL)
-	if err != nil {
+	if err = s.db.SetShortURL(userID, response.ShortURL, request.BaseURL); err != nil {
+		if errors.Is(err, errs.ErrAlreadyExists) {
+			return c.JSON(http.StatusConflict, response)
+		}
 		return c.NoContent(http.StatusBadRequest)
 	}
 
