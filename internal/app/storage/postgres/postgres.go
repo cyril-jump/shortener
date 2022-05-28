@@ -138,7 +138,7 @@ var schema = `
 	);
 	CREATE TABLE IF NOT EXISTS users_url(
 	  user_id text not null,
-	  url_id int not null references urls(id)
+	  url_id int not null references urls(id),
 	  CONSTRAINT unique_url UNIQUE (user_id, url_id)
 	);
 	`
