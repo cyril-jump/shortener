@@ -140,5 +140,4 @@ var schema = `
 	  user_id text not null,
 	  url_id int not null references urls(id)
 	);
-	ALTER TABLE users_url ADD CONSTRAINT users_url_id_key UNIQUE (user_id, url_id)
 	`
