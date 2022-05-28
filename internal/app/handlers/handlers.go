@@ -50,7 +50,7 @@ func (s Server) PostURL(c echo.Context) error {
 
 	if err := s.db.SetShortURL(userID, shortURL, baseURL); err != nil {
 		if errors.Is(err, errs.ErrAlreadyExists) {
-			return c.JSON(http.StatusConflict, shortURL)
+			return c.String(http.StatusConflict, shortURL)
 		}
 		return c.NoContent(http.StatusBadRequest)
 	}
