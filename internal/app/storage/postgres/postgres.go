@@ -46,7 +46,8 @@ func New(ctx context.Context, psqlConn string) *DB {
 
 	log.Println("Connected to DB!")
 	return &DB{
-		db: db,
+		db:  db,
+		ctx: ctx,
 	}
 }
 
@@ -106,11 +107,12 @@ func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
 	if id != 0 {
 		_, err = insertStmt2.Exec(userID, id)
 		if err != nil {
-			return err
+			log.Println(errs.ErrAlreadyExists)
+			return errs.ErrAlreadyExists
 		}
 	} else {
 		selectStmt.QueryRow(baseURL).Scan(&userURLID)
-		_, err = insertStmt2.Exec(userID, userURLID)
+		_, err := insertStmt2.ExecContext(D.ctx, userID, userURLID)
 		if err != nil {
 			return errs.ErrAlreadyExists
 		}
@@ -138,4 +140,5 @@ var schema = `
 	  user_id text not null,
 	  url_id int not null references urls(id)
 	);
+	ALTER TABLE users_url ADD CONSTRAINT users_url_id_key UNIQUE (user_id, url_id)
 	`
