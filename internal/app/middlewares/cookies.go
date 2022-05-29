@@ -9,8 +9,19 @@ import (
 )
 
 type MW struct {
-	users storage.Users
+	users       storage.Users
+	CookieConst string
 }
+
+type CookieConst string
+
+func (c CookieConst) String() string {
+	return string(c)
+}
+
+var (
+	UserIDCtxName CookieConst = "cookie"
+)
 
 func New(users storage.Users) *MW {
 	return &MW{
@@ -22,7 +33,8 @@ func (M *MW) SessionWithCookies(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var userID string
 		var ok bool
-		cookie, err := c.Cookie(M.users.GetCookieKey())
+
+		cookie, err := c.Request().Cookie(UserIDCtxName.String())
 		if err != nil {
 			userID := uuid.New().String()
 			cookie := new(http.Cookie)
@@ -43,8 +55,8 @@ func (M *MW) SessionWithCookies(next echo.HandlerFunc) echo.HandlerFunc {
 				c.Request().AddCookie(cookie)
 			}
 		}
-		key := M.users.GetCookieKey()
-		c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), key, userID)))
+
+		c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), UserIDCtxName.String(), userID)))
 
 		return next(c)
 	}

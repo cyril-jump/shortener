@@ -15,15 +15,13 @@ type DBUsers struct {
 }
 
 func New(ctx context.Context) *DBUsers {
-	cookei := "cookie"
 	key, err := utils.GenerateRandom(16)
 	if err != nil {
 		log.Printf("error: %v\n", err)
 	}
 	return &DBUsers{
-		randNum:   key,
-		cookieKey: cookei,
-		ctx:       ctx,
+		randNum: key,
+		ctx:     ctx,
 	}
 }
 
@@ -46,8 +44,4 @@ func (MU *DBUsers) CheckCookie(tokenString string) (string, bool) {
 		return fmt.Sprintf("%s", claims["user"]), ok
 	}
 	return "", false
-}
-
-func (MU *DBUsers) GetCookieKey() string {
-	return MU.cookieKey
 }

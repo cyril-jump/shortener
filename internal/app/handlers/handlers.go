@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/cyril-jump/shortener/internal/app/config"
+	"github.com/cyril-jump/shortener/internal/app/middlewares"
 	"github.com/cyril-jump/shortener/internal/app/storage"
 	"github.com/cyril-jump/shortener/internal/app/utils"
 	"github.com/cyril-jump/shortener/internal/app/utils/errs"
@@ -34,8 +35,15 @@ func (s Server) PostURL(c echo.Context) error {
 	var (
 		shortURL, baseURL string
 	)
+	var userID string
 
-	userID := fmt.Sprintf("%v", c.Request().Context().Value(s.usr.GetCookieKey()))
+	if id := c.Request().Context().Value(middlewares.UserIDCtxName.String()); id != nil {
+		userID = id.(string)
+	}
+
+	if userID == "" {
+		return c.NoContent(http.StatusNoContent)
+	}
 
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil || len(body) == 0 {
@@ -89,7 +97,15 @@ func (s Server) PostURLJSON(c echo.Context) error {
 		ShortURL string `json:"result"`
 	}
 
-	userID := fmt.Sprintf("%v", c.Request().Context().Value(s.usr.GetCookieKey()))
+	var userID string
+
+	if id := c.Request().Context().Value(middlewares.UserIDCtxName.String()); id != nil {
+		userID = id.(string)
+	}
+
+	if userID == "" {
+		return c.NoContent(http.StatusNoContent)
+	}
 
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil || len(body) == 0 {
@@ -124,7 +140,15 @@ func (s Server) GetURLsByUserID(c echo.Context) error {
 	var URLs []storage.ModelURL
 	var err error
 
-	userID := fmt.Sprintf("%v", c.Request().Context().Value(s.usr.GetCookieKey()))
+	var userID string
+
+	if id := c.Request().Context().Value(middlewares.UserIDCtxName.String()); id != nil {
+		userID = id.(string)
+	}
+
+	if userID == "" {
+		return c.NoContent(http.StatusNoContent)
+	}
 
 	if URLs, err = s.db.GetAllURLsByUserID(userID); err != nil || URLs == nil {
 		return c.NoContent(http.StatusNoContent)
@@ -138,7 +162,7 @@ func (s Server) PostURLsBATCH(c echo.Context) error {
 	var response []storage.ModelURLBatchResponse
 	var model storage.ModelURLBatchResponse
 
-	userID := fmt.Sprintf("%v", c.Request().Context().Value(s.usr.GetCookieKey()))
+	userID := fmt.Sprintf("%v", c.Request().Context().Value(middlewares.UserIDCtxName.String()))
 
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil || len(body) == 0 {

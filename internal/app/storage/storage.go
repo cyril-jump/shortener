@@ -11,7 +11,6 @@ type DB interface {
 type Users interface {
 	CreateCookie(userID string) (string, error)
 	CheckCookie(tokenString string) (string, bool)
-	GetCookieKey() string
 }
 
 type ModelURL struct {
