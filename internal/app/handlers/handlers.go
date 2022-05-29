@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/cyril-jump/shortener/internal/app/config"
 	"github.com/cyril-jump/shortener/internal/app/middlewares"
 	"github.com/cyril-jump/shortener/internal/app/storage"
@@ -137,6 +136,8 @@ func (s Server) PostURLJSON(c echo.Context) error {
 	hostName, err := s.cfg.Get("base_url")
 	utils.CheckErr(err, "base_url")
 
+	//userID, _ = s.usr.GetUserID(userName)
+
 	response.ShortURL = utils.Hash([]byte(request.BaseURL), hostName)
 	if err = s.db.SetShortURL(userID, response.ShortURL, request.BaseURL); err != nil {
 		if errors.Is(err, errs.ErrAlreadyExists) {
@@ -181,7 +182,21 @@ func (s Server) PostURLsBATCH(c echo.Context) error {
 	var response []storage.ModelURLBatchResponse
 	var model storage.ModelURLBatchResponse
 
-	userID := fmt.Sprintf("%v", c.Request().Context().Value(middlewares.UserIDCtxName.String()))
+	var userID string
+
+	if id := c.Request().Context().Value(middlewares.UserIDCtxName.String()); id != nil {
+		userID = id.(string)
+	}
+
+	if userID == "" {
+		userID = uuid.New().String()
+		cookie := new(http.Cookie)
+		cookie.Path = "/"
+		cookie.Value, _ = s.usr.CreateCookie(userID)
+		cookie.Name = "cookie"
+		c.SetCookie(cookie)
+		c.Request().AddCookie(cookie)
+	}
 
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil || len(body) == 0 {

@@ -9,8 +9,7 @@ import (
 )
 
 type MW struct {
-	users       storage.Users
-	CookieConst string
+	users storage.Users
 }
 
 type CookieConst string
@@ -34,7 +33,7 @@ func (M *MW) SessionWithCookies(next echo.HandlerFunc) echo.HandlerFunc {
 		var userID string
 		var ok bool
 
-		cookie, err := c.Request().Cookie(UserIDCtxName.String())
+		cookie, err := c.Cookie(UserIDCtxName.String())
 		if err != nil {
 			userID := uuid.New().String()
 			cookie := new(http.Cookie)
