@@ -47,7 +47,7 @@ func (suite *Suite) SetupTest() {
 		"http://localhost:8080",
 		"",
 		"postgres://dmosk:dmosk@localhost:5432/dmosk?sslmode=disable")
-	suite.usr = users.New()
+	suite.usr = users.New(suite.ctx)
 	suite.router = echo.NewRouter(suite.e)
 	suite.testSrv = httptest.NewServer(suite.e)
 	suite.mw = middlewares.New(suite.usr)

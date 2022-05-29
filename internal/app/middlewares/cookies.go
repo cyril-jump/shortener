@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"context"
 	"github.com/cyril-jump/shortener/internal/app/storage"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
@@ -19,7 +20,8 @@ func New(users storage.Users) *MW {
 
 func (M *MW) SessionWithCookies(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-
+		var userID string
+		var ok bool
 		cookie, err := c.Cookie(M.users.GetCookieKey())
 		if err != nil {
 			userID := uuid.New().String()
@@ -30,8 +32,9 @@ func (M *MW) SessionWithCookies(next echo.HandlerFunc) echo.HandlerFunc {
 			c.SetCookie(cookie)
 			c.Request().AddCookie(cookie)
 		} else {
-			if _, ok := M.users.CheckCookie(cookie.Value); !ok {
-				userID := uuid.New().String()
+			userID, ok = M.users.CheckCookie(cookie.Value)
+			if !ok {
+				userID = uuid.New().String()
 				cookie := new(http.Cookie)
 				cookie.Path = "/"
 				cookie.Value, _ = M.users.CreateCookie(userID)
@@ -40,6 +43,7 @@ func (M *MW) SessionWithCookies(next echo.HandlerFunc) echo.HandlerFunc {
 				c.Request().AddCookie(cookie)
 			}
 		}
+		c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), M.users.GetCookieKey(), userID)))
 
 		return next(c)
 	}

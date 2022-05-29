@@ -40,6 +40,7 @@ func (D *DB) GetAllURLsByUserID(userID string) ([]storage.ModelURL, error) {
 }
 
 func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
+
 	modelURL := storage.ModelURL{
 		ShortURL: shortURL,
 		BaseURL:  baseURL,

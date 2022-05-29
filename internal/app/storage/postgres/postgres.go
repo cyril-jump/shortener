@@ -7,26 +7,12 @@ import (
 	"github.com/cyril-jump/shortener/internal/app/utils/errs"
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"log"
+	"time"
 )
 
 type DB struct {
 	db  *sql.DB
 	ctx context.Context
-}
-
-func (D *DB) GetBaseURL(shortURL string) (string, error) {
-	var baseURL string
-	selectStmt, err := D.db.Prepare("SELECT base_url FROM urls WHERE short_url=$1;")
-	if err != nil {
-		return "", err
-	}
-	defer selectStmt.Close()
-
-	if err = selectStmt.QueryRow(shortURL).Scan(&baseURL); err != nil {
-		return "", err
-	}
-	return baseURL, nil
-
 }
 
 func New(ctx context.Context, psqlConn string) *DB {
@@ -51,7 +37,27 @@ func New(ctx context.Context, psqlConn string) *DB {
 	}
 }
 
+func (D *DB) GetBaseURL(shortURL string) (string, error) {
+	ctx, cancel := context.WithTimeout(D.ctx, 5*time.Second)
+	defer cancel()
+	var baseURL string
+	selectStmt, err := D.db.Prepare("SELECT base_url FROM urls WHERE short_url=$1;")
+	if err != nil {
+		return "", err
+	}
+	defer selectStmt.Close()
+
+	if err = selectStmt.QueryRowContext(ctx, shortURL).Scan(&baseURL); err != nil {
+		return "", err
+	}
+	return baseURL, nil
+
+}
+
 func (D *DB) GetAllURLsByUserID(userID string) ([]storage.ModelURL, error) {
+	ctx, cancel := context.WithTimeout(D.ctx, 5*time.Second)
+	defer cancel()
+
 	var modelURL []storage.ModelURL
 	var model storage.ModelURL
 	selectStmt, err := D.db.Prepare("SELECT short_url, base_url FROM users_url RIGHT JOIN urls u on users_url.url_id=u.id WHERE user_id=$1;")
@@ -60,7 +66,7 @@ func (D *DB) GetAllURLsByUserID(userID string) ([]storage.ModelURL, error) {
 	}
 	defer selectStmt.Close()
 
-	row, err := selectStmt.Query(userID)
+	row, err := selectStmt.QueryContext(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -82,6 +88,8 @@ func (D *DB) GetAllURLsByUserID(userID string) ([]storage.ModelURL, error) {
 }
 
 func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
+	ctx, cancel := context.WithTimeout(D.ctx, 5*time.Second)
+	defer cancel()
 	var id int
 	var userURLID int
 
@@ -103,16 +111,16 @@ func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
 	}
 	defer selectStmt.Close()
 
-	insertStmt1.QueryRow(baseURL, shortURL).Scan(&id)
+	insertStmt1.QueryRowContext(ctx, baseURL, shortURL).Scan(&id)
 	if id != 0 {
-		_, err = insertStmt2.Exec(userID, id)
+		_, err = insertStmt2.ExecContext(ctx, userID, id)
 		if err != nil {
 			log.Println(errs.ErrAlreadyExists)
 			return errs.ErrAlreadyExists
 		}
 	} else {
-		selectStmt.QueryRow(baseURL).Scan(&userURLID)
-		_, err := insertStmt2.Exec(userID, userURLID)
+		selectStmt.QueryRowContext(ctx, baseURL).Scan(&userURLID)
+		_, err := insertStmt2.ExecContext(ctx, userID, userURLID)
 		if err != nil {
 			return errs.ErrAlreadyExists
 		}

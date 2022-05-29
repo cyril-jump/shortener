@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/cyril-jump/shortener/internal/app/config"
 	"github.com/cyril-jump/shortener/internal/app/storage"
 	"github.com/cyril-jump/shortener/internal/app/utils"
@@ -31,11 +32,10 @@ func New(db storage.DB, config config.Cfg, usr storage.Users) *Server {
 
 func (s Server) PostURL(c echo.Context) error {
 	var (
-		shortURL, baseURL, userID string
+		shortURL, baseURL string
 	)
 
-	cookie, _ := c.Request().Cookie(s.usr.GetCookieKey())
-	userID, _ = s.usr.CheckCookie(cookie.Value)
+	userID := fmt.Sprintf("%v", c.Request().Context().Value(s.usr.GetCookieKey()))
 
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil || len(body) == 0 {
@@ -89,12 +89,7 @@ func (s Server) PostURLJSON(c echo.Context) error {
 		ShortURL string `json:"result"`
 	}
 
-	var (
-		userID string
-	)
-
-	cookie, _ := c.Request().Cookie(s.usr.GetCookieKey())
-	userID, _ = s.usr.CheckCookie(cookie.Value)
+	userID := fmt.Sprintf("%v", c.Request().Context().Value(s.usr.GetCookieKey()))
 
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil || len(body) == 0 {
@@ -128,14 +123,10 @@ func (s Server) PostURLJSON(c echo.Context) error {
 
 func (s Server) GetURLsByUserID(c echo.Context) error {
 
-	var (
-		userID string
-	)
 	var URLs []storage.ModelURL
 	var err error
 
-	cookie, _ := c.Request().Cookie(s.usr.GetCookieKey())
-	userID, _ = s.usr.CheckCookie(cookie.Value)
+	userID := fmt.Sprintf("%v", c.Request().Context().Value(s.usr.GetCookieKey()))
 
 	if URLs, err = s.db.GetAllURLsByUserID(userID); err != nil || URLs == nil {
 		return c.NoContent(http.StatusNoContent)

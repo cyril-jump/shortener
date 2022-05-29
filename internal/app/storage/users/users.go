@@ -1,6 +1,7 @@
 package users
 
 import (
+	"context"
 	"fmt"
 	"github.com/cyril-jump/shortener/internal/app/utils"
 	"github.com/golang-jwt/jwt"
@@ -10,9 +11,10 @@ import (
 type DBUsers struct {
 	cookieKey string
 	randNum   []byte
+	ctx       context.Context
 }
 
-func New() *DBUsers {
+func New(ctx context.Context) *DBUsers {
 	cookei := "cookie"
 	key, err := utils.GenerateRandom(16)
 	if err != nil {
@@ -21,6 +23,7 @@ func New() *DBUsers {
 	return &DBUsers{
 		randNum:   key,
 		cookieKey: cookei,
+		ctx:       ctx,
 	}
 }
 
@@ -31,6 +34,7 @@ func (MU *DBUsers) CreateCookie(userID string) (string, error) {
 }
 
 func (MU *DBUsers) CheckCookie(tokenString string) (string, bool) {
+
 	token, _ := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexected signing method: %v", token.Header["alg"])

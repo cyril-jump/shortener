@@ -64,7 +64,7 @@ func main() {
 	} else {
 		db = ram.NewDB(ctx)
 	}
-	usr := users.New()
+	usr := users.New(ctx)
 	//server
 	srv := handlers.New(db, cfg, usr)
 
