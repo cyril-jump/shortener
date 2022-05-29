@@ -108,8 +108,6 @@ func (s Server) PostURLJSON(c echo.Context) error {
 	hostName, err := s.cfg.Get("base_url")
 	utils.CheckErr(err, "base_url")
 
-	//userID, _ = s.usr.GetUserID(userName)
-
 	response.ShortURL = utils.Hash([]byte(request.BaseURL), hostName)
 	if err = s.db.SetShortURL(userID, response.ShortURL, request.BaseURL); err != nil {
 		if errors.Is(err, errs.ErrAlreadyExists) {
@@ -139,12 +137,8 @@ func (s Server) PostURLsBATCH(c echo.Context) error {
 	var request []storage.ModelURLBatchRequest
 	var response []storage.ModelURLBatchResponse
 	var model storage.ModelURLBatchResponse
-	var (
-		userID string
-	)
 
-	cookie, _ := c.Request().Cookie(s.usr.GetCookieKey())
-	userID, _ = s.usr.CheckCookie(cookie.Value)
+	userID := fmt.Sprintf("%v", c.Request().Context().Value(s.usr.GetCookieKey()))
 
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil || len(body) == 0 {

@@ -43,7 +43,8 @@ func (M *MW) SessionWithCookies(next echo.HandlerFunc) echo.HandlerFunc {
 				c.Request().AddCookie(cookie)
 			}
 		}
-		c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), M.users.GetCookieKey(), userID)))
+		key := M.users.GetCookieKey()
+		c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), key, userID)))
 
 		return next(c)
 	}
