@@ -6,7 +6,6 @@ import (
 	"github.com/cyril-jump/shortener/internal/app/storage"
 	"github.com/cyril-jump/shortener/internal/app/utils"
 	"github.com/labstack/echo/v4"
-	"log"
 )
 
 type MW struct {
@@ -34,9 +33,7 @@ func (M *MW) SessionWithCookies(next echo.HandlerFunc) echo.HandlerFunc {
 			}
 		}
 
-		log.Println(userID, "  USER1")
-
-		c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), config.CookieKey.String(), userID)))
+		c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), config.CookieKey, userID)))
 
 		return next(c)
 	}

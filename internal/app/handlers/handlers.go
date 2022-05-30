@@ -36,7 +36,7 @@ func (s Server) PostURL(c echo.Context) error {
 	)
 	var userID string
 
-	if id := c.Request().Context().Value(config.CookieKey.String()); id != nil {
+	if id := c.Request().Context().Value(config.CookieKey); id != nil {
 		userID = id.(string)
 	}
 
@@ -93,7 +93,7 @@ func (s Server) PostURLJSON(c echo.Context) error {
 
 	var userID string
 
-	if id := c.Request().Context().Value(config.CookieKey.String()); id != nil {
+	if id := c.Request().Context().Value(config.CookieKey); id != nil {
 		userID = id.(string)
 	}
 
@@ -138,14 +138,13 @@ func (s Server) GetURLsByUserID(c echo.Context) error {
 
 	var userID string
 
-	if id := c.Request().Context().Value(config.CookieKey.String()); id != nil {
+	if id := c.Request().Context().Value(config.CookieKey); id != nil {
 		userID = id.(string)
 	}
-	log.Println(userID, "  USER2")
+
 	if userID == "" {
 		userID = utils.CreateCookie(c, s.usr)
 	}
-	log.Println(userID, "  USER3")
 
 	if URLs, err = s.db.GetAllURLsByUserID(userID); err != nil || URLs == nil {
 		return c.NoContent(http.StatusNoContent)
@@ -161,7 +160,7 @@ func (s Server) PostURLsBATCH(c echo.Context) error {
 
 	var userID string
 
-	if id := c.Request().Context().Value(config.CookieKey.String()); id != nil {
+	if id := c.Request().Context().Value(config.CookieKey); id != nil {
 		userID = id.(string)
 	}
 

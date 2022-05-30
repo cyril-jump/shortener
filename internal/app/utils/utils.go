@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"crypto/rand"
 	"fmt"
+	"github.com/cyril-jump/shortener/internal/app/config"
 	"github.com/cyril-jump/shortener/internal/app/storage"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
@@ -37,7 +38,7 @@ func CreateCookie(c echo.Context, usr storage.Users) string {
 	cookie := new(http.Cookie)
 	cookie.Path = "/"
 	cookie.Value, _ = usr.CreateToken(userID)
-	cookie.Name = "cookie"
+	cookie.Name = config.CookieKey.String()
 	c.SetCookie(cookie)
 	c.Request().AddCookie(cookie)
 	return userID
