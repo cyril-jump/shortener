@@ -4,16 +4,13 @@ import (
 	"context"
 	"github.com/caarlos0/env/v6"
 	"github.com/cyril-jump/shortener/internal/app/config"
-	"github.com/cyril-jump/shortener/internal/app/handlers"
-	"github.com/cyril-jump/shortener/internal/app/middlewares"
+	"github.com/cyril-jump/shortener/internal/app/server"
 	"github.com/cyril-jump/shortener/internal/app/storage"
 	"github.com/cyril-jump/shortener/internal/app/storage/postgres"
 	"github.com/cyril-jump/shortener/internal/app/storage/ram"
 	"github.com/cyril-jump/shortener/internal/app/storage/rom"
 	"github.com/cyril-jump/shortener/internal/app/storage/users"
 	"github.com/cyril-jump/shortener/internal/app/utils"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 	flag "github.com/spf13/pflag"
 	"log"
 	"net/http"
@@ -50,64 +47,49 @@ func main() {
 	//config
 	cfg := config.NewConfig(config.Flags.ServerAddress, config.Flags.BaseURL, config.Flags.FileStoragePath, config.Flags.DatabaseDSN)
 
-	psqlConn, err := cfg.Get("database_dsn")
-	utils.CheckErr(err, "")
+	psqlConn, err := cfg.Get("database_dsn_str")
+	utils.CheckErr(err, "database_dsn_str")
 
-	fileStoragePath, err := cfg.Get("file_storage_path")
-	utils.CheckErr(err, "file_storage_path")
+	fileStoragePath, err := cfg.Get("file_storage_path_str")
+	utils.CheckErr(err, "file_storage_path_str")
 
 	if fileStoragePath != "" {
-		db, err = rom.NewDB(ctx, fileStoragePath)
+		db, err = rom.NewDB(ctx, fileStoragePath.(string))
 		utils.CheckErr(err, "")
 	} else if psqlConn != "" {
-		db = postgres.New(ctx, psqlConn)
+		db = postgres.New(ctx, psqlConn.(string))
 	} else {
 		db = ram.NewDB(ctx)
 	}
 	usr := users.New(ctx)
-	//server
-	srv := handlers.New(db, cfg, usr)
 
-	//new Echo instance
-	e := echo.New()
+	// Init HTTPServer
 
-	// Middleware
-	mw := middlewares.New(usr)
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
-	e.Use(middleware.Gzip())
-	e.Use(middleware.Decompress())
-	e.Use(mw.SessionWithCookies)
-	//Routes
-	e.GET("/:urlID", srv.GetURL)
-	e.GET("/api/user/urls", srv.GetURLsByUserID)
-	e.GET("/ping", srv.PingDB)
-	e.POST("/", srv.PostURL)
-	e.POST("/api/shorten", srv.PostURLJSON)
-	e.POST("/api/shorten/batch", srv.PostURLsBATCH)
-
-	// Start Server
-
-	serverAddress, err := cfg.Get("server_address")
-	utils.CheckErr(err, "server_address")
+	srv := server.InitSrv(db, cfg, usr)
 
 	go func() {
-		if err = e.Start(serverAddress); err != nil && err != http.ErrServerClosed {
-			e.Logger.Fatal(err)
+
+		<-signalChan
+
+		log.Println("Shutting down...")
+
+		cancel()
+		if err = srv.Shutdown(ctx); err != nil && err != ctx.Err() {
+			srv.Logger.Fatal(err)
+		}
+
+		if err = db.Close(); err != nil {
+			log.Fatal(err)
 		}
 
 	}()
 
-	<-signalChan
+	// Start Server
 
-	log.Println("Shutting down...")
+	serverAddress, err := cfg.Get("server_address_str")
+	utils.CheckErr(err, "server_address_str")
 
-	cancel()
-	if err = e.Shutdown(ctx); err != nil && err != ctx.Err() {
-		e.Logger.Fatal(err)
-	}
-
-	if err = db.Close(); err != nil {
-		log.Fatal(err)
+	if err = srv.Start(serverAddress.(string)); err != nil && err != http.ErrServerClosed {
+		srv.Logger.Fatal(err)
 	}
 }

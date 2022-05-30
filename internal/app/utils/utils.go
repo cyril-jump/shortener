@@ -4,7 +4,11 @@ import (
 	"crypto/md5"
 	"crypto/rand"
 	"fmt"
+	"github.com/cyril-jump/shortener/internal/app/storage"
+	"github.com/google/uuid"
+	"github.com/labstack/echo/v4"
 	"log"
+	"net/http"
 )
 
 func Hash(url []byte, hostName string) string {
@@ -26,4 +30,14 @@ func CheckErr(err error, text string) {
 	if err != nil {
 		log.Fatal(text, ": ", err)
 	}
+}
+
+func CreateCookie(c echo.Context, usr storage.Users) {
+	userID := uuid.New().String()
+	cookie := new(http.Cookie)
+	cookie.Path = "/"
+	cookie.Value, _ = usr.CreateToken(userID)
+	cookie.Name = "cookie"
+	c.SetCookie(cookie)
+	c.Request().AddCookie(cookie)
 }

@@ -2,25 +2,15 @@ package middlewares
 
 import (
 	"context"
+	"github.com/cyril-jump/shortener/internal/app/config"
 	"github.com/cyril-jump/shortener/internal/app/storage"
-	"github.com/google/uuid"
+	"github.com/cyril-jump/shortener/internal/app/utils"
 	"github.com/labstack/echo/v4"
-	"net/http"
 )
 
 type MW struct {
 	users storage.Users
 }
-
-type CookieConst string
-
-func (c CookieConst) String() string {
-	return string(c)
-}
-
-var (
-	UserIDCtxName CookieConst = "cookie"
-)
 
 func New(users storage.Users) *MW {
 	return &MW{
@@ -33,29 +23,17 @@ func (M *MW) SessionWithCookies(next echo.HandlerFunc) echo.HandlerFunc {
 		var userID string
 		var ok bool
 
-		cookie, err := c.Cookie(UserIDCtxName.String())
+		cookie, err := c.Cookie(config.CookieKey.String())
 		if err != nil {
-			userID := uuid.New().String()
-			cookie := new(http.Cookie)
-			cookie.Path = "/"
-			cookie.Value, _ = M.users.CreateCookie(userID)
-			cookie.Name = "cookie"
-			c.SetCookie(cookie)
-			c.Request().AddCookie(cookie)
+			utils.CreateCookie(c, M.users)
 		} else {
-			userID, ok = M.users.CheckCookie(cookie.Value)
+			userID, ok = M.users.CheckToken(cookie.Value)
 			if !ok {
-				userID = uuid.New().String()
-				cookie := new(http.Cookie)
-				cookie.Path = "/"
-				cookie.Value, _ = M.users.CreateCookie(userID)
-				cookie.Name = "cookie"
-				c.SetCookie(cookie)
-				c.Request().AddCookie(cookie)
+				utils.CreateCookie(c, M.users)
 			}
 		}
 
-		c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), UserIDCtxName.String(), userID)))
+		c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), config.CookieKey, userID)))
 
 		return next(c)
 	}

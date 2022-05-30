@@ -4,11 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/cyril-jump/shortener/internal/app/config"
-	"github.com/cyril-jump/shortener/internal/app/middlewares"
+	"github.com/cyril-jump/shortener/internal/app/dto"
 	"github.com/cyril-jump/shortener/internal/app/storage"
 	"github.com/cyril-jump/shortener/internal/app/utils"
 	"github.com/cyril-jump/shortener/internal/app/utils/errs"
-	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"io"
 	"log"
@@ -17,11 +16,11 @@ import (
 
 type Server struct {
 	db  storage.DB
-	cfg config.Cfg
+	cfg storage.Cfg
 	usr storage.Users
 }
 
-func New(db storage.DB, config config.Cfg, usr storage.Users) *Server {
+func New(db storage.DB, config storage.Cfg, usr storage.Users) *Server {
 	return &Server{
 		db:  db,
 		cfg: config,
@@ -37,18 +36,12 @@ func (s Server) PostURL(c echo.Context) error {
 	)
 	var userID string
 
-	if id := c.Request().Context().Value(middlewares.UserIDCtxName.String()); id != nil {
+	if id := c.Request().Context().Value(config.CookieKey.String()); id != nil {
 		userID = id.(string)
 	}
 
 	if userID == "" {
-		userID = uuid.New().String()
-		cookie := new(http.Cookie)
-		cookie.Path = "/"
-		cookie.Value, _ = s.usr.CreateCookie(userID)
-		cookie.Name = "cookie"
-		c.SetCookie(cookie)
-		c.Request().AddCookie(cookie)
+		utils.CreateCookie(c, s.usr)
 	}
 
 	body, err := io.ReadAll(c.Request().Body)
@@ -56,10 +49,10 @@ func (s Server) PostURL(c echo.Context) error {
 		return c.NoContent(http.StatusBadRequest)
 	}
 
-	hostName, err := s.cfg.Get("base_url")
-	utils.CheckErr(err, "base_url")
+	hostName, err := s.cfg.Get("base_url_str")
+	utils.CheckErr(err, "base_url_str")
 
-	shortURL = utils.Hash(body, hostName)
+	shortURL = utils.Hash(body, hostName.(string))
 	baseURL = string(body)
 
 	if err := s.db.SetShortURL(userID, shortURL, baseURL); err != nil {
@@ -81,9 +74,9 @@ func (s Server) GetURL(c echo.Context) error {
 	if c.Param("urlID") == "" {
 		return c.NoContent(http.StatusBadRequest)
 	} else {
-		hostName, err := s.cfg.Get("base_url")
-		utils.CheckErr(err, "base_url")
-		shortURL = hostName + "/" + c.Param("urlID")
+		hostName, err := s.cfg.Get("base_url_str")
+		utils.CheckErr(err, "base_url_str")
+		shortURL = hostName.(string) + "/" + c.Param("urlID")
 	}
 
 	if baseURL, err = s.db.GetBaseURL(shortURL); err != nil {
@@ -95,28 +88,17 @@ func (s Server) GetURL(c echo.Context) error {
 }
 
 func (s Server) PostURLJSON(c echo.Context) error {
-	var request struct {
-		BaseURL string `json:"url"`
-	}
-
-	var response struct {
-		ShortURL string `json:"result"`
-	}
+	var request dto.ModelRequestURL
+	var response dto.ModelResponseURL
 
 	var userID string
 
-	if id := c.Request().Context().Value(middlewares.UserIDCtxName.String()); id != nil {
+	if id := c.Request().Context().Value(config.CookieKey.String()); id != nil {
 		userID = id.(string)
 	}
 
 	if userID == "" {
-		userID = uuid.New().String()
-		cookie := new(http.Cookie)
-		cookie.Path = "/"
-		cookie.Value, _ = s.usr.CreateCookie(userID)
-		cookie.Name = "cookie"
-		c.SetCookie(cookie)
-		c.Request().AddCookie(cookie)
+		utils.CreateCookie(c, s.usr)
 	}
 
 	body, err := io.ReadAll(c.Request().Body)
@@ -133,12 +115,12 @@ func (s Server) PostURLJSON(c echo.Context) error {
 		return c.NoContent(http.StatusBadRequest)
 	}
 
-	hostName, err := s.cfg.Get("base_url")
-	utils.CheckErr(err, "base_url")
+	hostName, err := s.cfg.Get("base_url_str")
+	utils.CheckErr(err, "base_url_str")
 
 	//userID, _ = s.usr.GetUserID(userName)
 
-	response.ShortURL = utils.Hash([]byte(request.BaseURL), hostName)
+	response.ShortURL = utils.Hash([]byte(request.BaseURL), hostName.(string))
 	if err = s.db.SetShortURL(userID, response.ShortURL, request.BaseURL); err != nil {
 		if errors.Is(err, errs.ErrAlreadyExists) {
 			return c.JSON(http.StatusConflict, response)
@@ -151,23 +133,17 @@ func (s Server) PostURLJSON(c echo.Context) error {
 
 func (s Server) GetURLsByUserID(c echo.Context) error {
 
-	var URLs []storage.ModelURL
+	var URLs []dto.ModelURL
 	var err error
 
 	var userID string
 
-	if id := c.Request().Context().Value(middlewares.UserIDCtxName.String()); id != nil {
+	if id := c.Request().Context().Value(config.CookieKey.String()); id != nil {
 		userID = id.(string)
 	}
 
 	if userID == "" {
-		userID = uuid.New().String()
-		cookie := new(http.Cookie)
-		cookie.Path = "/"
-		cookie.Value, _ = s.usr.CreateCookie(userID)
-		cookie.Name = "cookie"
-		c.SetCookie(cookie)
-		c.Request().AddCookie(cookie)
+		utils.CreateCookie(c, s.usr)
 	}
 
 	if URLs, err = s.db.GetAllURLsByUserID(userID); err != nil || URLs == nil {
@@ -178,24 +154,18 @@ func (s Server) GetURLsByUserID(c echo.Context) error {
 }
 
 func (s Server) PostURLsBATCH(c echo.Context) error {
-	var request []storage.ModelURLBatchRequest
-	var response []storage.ModelURLBatchResponse
-	var model storage.ModelURLBatchResponse
+	var request []dto.ModelURLBatchRequest
+	var response []dto.ModelURLBatchResponse
+	var model dto.ModelURLBatchResponse
 
 	var userID string
 
-	if id := c.Request().Context().Value(middlewares.UserIDCtxName.String()); id != nil {
+	if id := c.Request().Context().Value(config.CookieKey.String()); id != nil {
 		userID = id.(string)
 	}
 
 	if userID == "" {
-		userID = uuid.New().String()
-		cookie := new(http.Cookie)
-		cookie.Path = "/"
-		cookie.Value, _ = s.usr.CreateCookie(userID)
-		cookie.Name = "cookie"
-		c.SetCookie(cookie)
-		c.Request().AddCookie(cookie)
+		utils.CreateCookie(c, s.usr)
 	}
 
 	body, err := io.ReadAll(c.Request().Body)
@@ -208,12 +178,12 @@ func (s Server) PostURLsBATCH(c echo.Context) error {
 		return c.NoContent(http.StatusBadRequest)
 	}
 
-	hostName, err := s.cfg.Get("base_url")
-	utils.CheckErr(err, "base_url")
+	hostName, err := s.cfg.Get("base_url_str")
+	utils.CheckErr(err, "base_url_str")
 
 	for _, val := range request {
 		model.CorID = val.CorID
-		model.ShortURL = utils.Hash([]byte(val.BaseURL), hostName)
+		model.ShortURL = utils.Hash([]byte(val.BaseURL), hostName.(string))
 		response = append(response, model)
 		if err := s.db.SetShortURL(userID, model.ShortURL, val.BaseURL); err != nil {
 			log.Println("Failed to write to DB: ", err)

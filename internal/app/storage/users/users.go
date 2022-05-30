@@ -9,9 +9,8 @@ import (
 )
 
 type DBUsers struct {
-	cookieKey string
-	randNum   []byte
-	ctx       context.Context
+	randNum []byte
+	ctx     context.Context
 }
 
 func New(ctx context.Context) *DBUsers {
@@ -25,13 +24,13 @@ func New(ctx context.Context) *DBUsers {
 	}
 }
 
-func (MU *DBUsers) CreateCookie(userID string) (string, error) {
+func (MU *DBUsers) CreateToken(userID string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"user": userID})
 	tokenString, _ := token.SignedString(MU.randNum)
 	return tokenString, nil
 }
 
-func (MU *DBUsers) CheckCookie(tokenString string) (string, bool) {
+func (MU *DBUsers) CheckToken(tokenString string) (string, bool) {
 
 	token, _ := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {

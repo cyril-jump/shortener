@@ -1,10 +1,17 @@
 package config
 
-import (
-	"github.com/cyril-jump/shortener/internal/app/utils/errs"
-	"github.com/pquerna/ffjson/ffjson"
-	"github.com/tidwall/gjson"
+import "github.com/cyril-jump/shortener/internal/app/utils/errs"
+
+// context const
+type contextKey string
+
+const (
+	CookieKey = contextKey("cookie")
 )
+
+func (c contextKey) String() string {
+	return string(c)
+}
 
 // flags
 
@@ -27,49 +34,25 @@ var EnvVar struct {
 // config
 
 type Config struct {
-	serverAddress   string
-	baseURL         string
-	fileStoragePath string
-	databaseDSN     string
+	cfg map[string]any
 }
 
-func (c Config) Get(key string) (string, error) {
-	conf := &struct {
-		ServerAddress   string `json:"server_address"`
-		BaseURL         string `json:"base_url"`
-		FileStoragePath string `json:"file_storage_path"`
-		DatabaseDSN     string `json:"database_dsn"`
-	}{
-		ServerAddress:   c.serverAddress,
-		BaseURL:         c.baseURL,
-		FileStoragePath: c.fileStoragePath,
-		DatabaseDSN:     c.databaseDSN,
-	}
-	buf, err := ffjson.Marshal(conf)
-	if err != nil {
-		return "", err
-	}
-
-	if !gjson.GetBytes(buf, key).Exists() {
+func (c Config) Get(key string) (any, error) {
+	if _, ok := c.cfg[key]; !ok {
 		return "", errs.ErrNotFound
 	}
-
-	return gjson.GetBytes(buf, key).String(), nil
+	return c.cfg[key], nil
 }
 
 //constructor
 
 func NewConfig(srvAddr, hostName, fileStoragePath, databaseDSN string) *Config {
+	cfg := make(map[string]any)
+	cfg["server_address_str"] = srvAddr
+	cfg["base_url_str"] = hostName
+	cfg["file_storage_path_str"] = fileStoragePath
+	cfg["database_dsn_str"] = databaseDSN
 	return &Config{
-		serverAddress:   srvAddr,
-		baseURL:         hostName,
-		fileStoragePath: fileStoragePath,
-		databaseDSN:     databaseDSN,
+		cfg: cfg,
 	}
-}
-
-// config interface
-
-type Cfg interface {
-	Get(key string) (string, error)
 }

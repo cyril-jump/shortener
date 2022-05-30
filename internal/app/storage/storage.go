@@ -1,29 +1,20 @@
 package storage
 
+import "github.com/cyril-jump/shortener/internal/app/dto"
+
 type DB interface {
 	GetBaseURL(shortURL string) (string, error)
-	GetAllURLsByUserID(userID string) ([]ModelURL, error)
+	GetAllURLsByUserID(userID string) ([]dto.ModelURL, error)
 	SetShortURL(userID, shortURL, baseURL string) error
 	Ping() error
 	Close() error
 }
 
 type Users interface {
-	CreateCookie(userID string) (string, error)
-	CheckCookie(tokenString string) (string, bool)
+	CreateToken(userID string) (string, error)
+	CheckToken(tokenString string) (string, bool)
 }
 
-type ModelURL struct {
-	ShortURL string `json:"short_url"`
-	BaseURL  string `json:"original_url"`
-}
-
-type ModelURLBatchRequest struct {
-	CorID   string `json:"correlation_id"`
-	BaseURL string `json:"original_url"`
-}
-
-type ModelURLBatchResponse struct {
-	CorID    string `json:"correlation_id"`
-	ShortURL string `json:"short_url"`
+type Cfg interface {
+	Get(key string) (any, error)
 }

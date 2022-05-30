@@ -2,14 +2,14 @@ package ram
 
 import (
 	"context"
-	"github.com/cyril-jump/shortener/internal/app/storage"
+	"github.com/cyril-jump/shortener/internal/app/dto"
 	"github.com/cyril-jump/shortener/internal/app/utils/errs"
 )
 
 // DB
 
 type DB struct {
-	DataCache map[string][]storage.ModelURL
+	DataCache map[string][]dto.ModelURL
 	GlobalBD  map[string]string
 	ctx       context.Context
 }
@@ -19,7 +19,7 @@ type DB struct {
 func NewDB(ctx context.Context) *DB {
 
 	return &DB{
-		DataCache: make(map[string][]storage.ModelURL),
+		DataCache: make(map[string][]dto.ModelURL),
 		GlobalBD:  make(map[string]string),
 		ctx:       ctx,
 	}
@@ -32,7 +32,7 @@ func (D *DB) GetBaseURL(shortURL string) (string, error) {
 	return "", errs.ErrNoContent
 }
 
-func (D *DB) GetAllURLsByUserID(userID string) ([]storage.ModelURL, error) {
+func (D *DB) GetAllURLsByUserID(userID string) ([]dto.ModelURL, error) {
 	if _, ok := D.DataCache[userID]; ok {
 		return D.DataCache[userID], nil
 	}
@@ -40,7 +40,7 @@ func (D *DB) GetAllURLsByUserID(userID string) ([]storage.ModelURL, error) {
 }
 
 func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
-	modelURL := storage.ModelURL{
+	modelURL := dto.ModelURL{
 		ShortURL: shortURL,
 		BaseURL:  baseURL,
 	}

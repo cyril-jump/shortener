@@ -3,7 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
-	"github.com/cyril-jump/shortener/internal/app/storage"
+	"github.com/cyril-jump/shortener/internal/app/dto"
 	"github.com/cyril-jump/shortener/internal/app/utils/errs"
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"log"
@@ -51,9 +51,9 @@ func New(ctx context.Context, psqlConn string) *DB {
 	}
 }
 
-func (D *DB) GetAllURLsByUserID(userID string) ([]storage.ModelURL, error) {
-	var modelURL []storage.ModelURL
-	var model storage.ModelURL
+func (D *DB) GetAllURLsByUserID(userID string) ([]dto.ModelURL, error) {
+	var modelURL []dto.ModelURL
+	var model dto.ModelURL
 	selectStmt, err := D.db.Prepare("SELECT short_url, base_url FROM users_url RIGHT JOIN urls u on users_url.url_id=u.id WHERE user_id=$1;")
 	if err != nil {
 		return nil, err

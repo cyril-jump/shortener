@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
-	"github.com/cyril-jump/shortener/internal/app/storage"
+	"github.com/cyril-jump/shortener/internal/app/dto"
 	"github.com/cyril-jump/shortener/internal/app/utils/errs"
 	"log"
 	"os"
@@ -15,7 +15,7 @@ import (
 type DB struct {
 	file      *os.File
 	DataFile  ModelFile `json:"data_file"`
-	DataCache map[string][]storage.ModelURL
+	DataCache map[string][]dto.ModelURL
 	GlobalBD  map[string]string
 	encoder   *json.Encoder
 	ctx       context.Context
@@ -35,8 +35,8 @@ func NewDB(ctx context.Context, filepath string) (*DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	var modelURL storage.ModelURL
-	dataCache := make(map[string][]storage.ModelURL)
+	var modelURL dto.ModelURL
+	dataCache := make(map[string][]dto.ModelURL)
 	globalDB := make(map[string]string)
 	var dataFile ModelFile
 
@@ -72,7 +72,7 @@ func (D *DB) GetBaseURL(shortURL string) (string, error) {
 	return "", errs.ErrNoContent
 }
 
-func (D *DB) GetAllURLsByUserID(userID string) ([]storage.ModelURL, error) {
+func (D *DB) GetAllURLsByUserID(userID string) ([]dto.ModelURL, error) {
 	if _, ok := D.DataCache[userID]; ok {
 		return D.DataCache[userID], nil
 	}
@@ -85,7 +85,7 @@ func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
 	D.DataFile.ShortURL = shortURL
 	D.DataFile.BaseURL = baseURL
 
-	modelURL := storage.ModelURL{
+	modelURL := dto.ModelURL{
 		ShortURL: shortURL,
 		BaseURL:  baseURL,
 	}
