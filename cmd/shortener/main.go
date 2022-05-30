@@ -54,10 +54,10 @@ func main() {
 	utils.CheckErr(err, "file_storage_path_str")
 
 	if fileStoragePath != "" {
-		db, err = rom.NewDB(ctx, fileStoragePath.(string))
+		db, err = rom.NewDB(ctx, fileStoragePath)
 		utils.CheckErr(err, "")
 	} else if psqlConn != "" {
-		db = postgres.New(ctx, psqlConn.(string))
+		db = postgres.New(ctx, psqlConn)
 	} else {
 		db = ram.NewDB(ctx)
 	}
@@ -89,7 +89,7 @@ func main() {
 	serverAddress, err := cfg.Get("server_address_str")
 	utils.CheckErr(err, "server_address_str")
 
-	if err = srv.Start(serverAddress.(string)); err != nil && err != http.ErrServerClosed {
+	if err = srv.Start(serverAddress); err != nil && err != http.ErrServerClosed {
 		srv.Logger.Fatal(err)
 	}
 }

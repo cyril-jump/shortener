@@ -41,7 +41,7 @@ func (s Server) PostURL(c echo.Context) error {
 	}
 
 	if userID == "" {
-		utils.CreateCookie(c, s.usr)
+		userID = utils.CreateCookie(c, s.usr)
 	}
 
 	body, err := io.ReadAll(c.Request().Body)
@@ -52,7 +52,7 @@ func (s Server) PostURL(c echo.Context) error {
 	hostName, err := s.cfg.Get("base_url_str")
 	utils.CheckErr(err, "base_url_str")
 
-	shortURL = utils.Hash(body, hostName.(string))
+	shortURL = utils.Hash(body, hostName)
 	baseURL = string(body)
 
 	if err := s.db.SetShortURL(userID, shortURL, baseURL); err != nil {
@@ -76,7 +76,7 @@ func (s Server) GetURL(c echo.Context) error {
 	} else {
 		hostName, err := s.cfg.Get("base_url_str")
 		utils.CheckErr(err, "base_url_str")
-		shortURL = hostName.(string) + "/" + c.Param("urlID")
+		shortURL = hostName + "/" + c.Param("urlID")
 	}
 
 	if baseURL, err = s.db.GetBaseURL(shortURL); err != nil {
@@ -98,7 +98,7 @@ func (s Server) PostURLJSON(c echo.Context) error {
 	}
 
 	if userID == "" {
-		utils.CreateCookie(c, s.usr)
+		userID = utils.CreateCookie(c, s.usr)
 	}
 
 	body, err := io.ReadAll(c.Request().Body)
@@ -120,7 +120,7 @@ func (s Server) PostURLJSON(c echo.Context) error {
 
 	//userID, _ = s.usr.GetUserID(userName)
 
-	response.ShortURL = utils.Hash([]byte(request.BaseURL), hostName.(string))
+	response.ShortURL = utils.Hash([]byte(request.BaseURL), hostName)
 	if err = s.db.SetShortURL(userID, response.ShortURL, request.BaseURL); err != nil {
 		if errors.Is(err, errs.ErrAlreadyExists) {
 			return c.JSON(http.StatusConflict, response)
@@ -141,10 +141,11 @@ func (s Server) GetURLsByUserID(c echo.Context) error {
 	if id := c.Request().Context().Value(config.CookieKey.String()); id != nil {
 		userID = id.(string)
 	}
-
+	log.Println(userID, "  USER2")
 	if userID == "" {
-		utils.CreateCookie(c, s.usr)
+		userID = utils.CreateCookie(c, s.usr)
 	}
+	log.Println(userID, "  USER3")
 
 	if URLs, err = s.db.GetAllURLsByUserID(userID); err != nil || URLs == nil {
 		return c.NoContent(http.StatusNoContent)
@@ -165,7 +166,7 @@ func (s Server) PostURLsBATCH(c echo.Context) error {
 	}
 
 	if userID == "" {
-		utils.CreateCookie(c, s.usr)
+		userID = utils.CreateCookie(c, s.usr)
 	}
 
 	body, err := io.ReadAll(c.Request().Body)
@@ -183,7 +184,7 @@ func (s Server) PostURLsBATCH(c echo.Context) error {
 
 	for _, val := range request {
 		model.CorID = val.CorID
-		model.ShortURL = utils.Hash([]byte(val.BaseURL), hostName.(string))
+		model.ShortURL = utils.Hash([]byte(val.BaseURL), hostName)
 		response = append(response, model)
 		if err := s.db.SetShortURL(userID, model.ShortURL, val.BaseURL); err != nil {
 			log.Println("Failed to write to DB: ", err)

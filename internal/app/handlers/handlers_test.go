@@ -205,9 +205,9 @@ func (suite *Suite) TestServer_GetURLsByUserID() {
 	ShortURL1 := "http://localhost:8080/f845599b098517893fc2712d32774f53"
 	BaseURL1 := "https://www.yandex.ru"
 	userID1 := uuid.New().String()
-	token1, _ := suite.usr.CreateCookie(userID1)
+	token1, _ := suite.usr.CreateToken(userID1)
 	userID2 := uuid.New().String()
-	token2, _ := suite.usr.CreateCookie(userID2)
+	token2, _ := suite.usr.CreateToken(userID2)
 	_ = suite.db.SetShortURL(userID1, ShortURL1, BaseURL1)
 	suite.e.Use(suite.mw.SessionWithCookies)
 	suite.e.GET("/api/user/urls", suite.srv.GetURLsByUserID)

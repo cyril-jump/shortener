@@ -28,16 +28,16 @@ var EnvVar struct {
 	ServerAddress   string `env:"SERVER_ADDRESS" envDefault:":8080"`
 	BaseURL         string `env:"BASE_URL" envDefault:"http://localhost:8080"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
-	DatabaseDSN     string `env:"DATABASE_DSN"`
+	DatabaseDSN     string `env:"DATABASE_DSN" envDefault:"postgres://dmosk:dmosk@localhost:5432/dmosk?sslmode=disable"`
 }
 
 // config
 
 type Config struct {
-	cfg map[string]any
+	cfg map[string]string
 }
 
-func (c Config) Get(key string) (any, error) {
+func (c Config) Get(key string) (string, error) {
 	if _, ok := c.cfg[key]; !ok {
 		return "", errs.ErrNotFound
 	}
@@ -47,7 +47,7 @@ func (c Config) Get(key string) (any, error) {
 //constructor
 
 func NewConfig(srvAddr, hostName, fileStoragePath, databaseDSN string) *Config {
-	cfg := make(map[string]any)
+	cfg := make(map[string]string)
 	cfg["server_address_str"] = srvAddr
 	cfg["base_url_str"] = hostName
 	cfg["file_storage_path_str"] = fileStoragePath

@@ -32,7 +32,7 @@ func CheckErr(err error, text string) {
 	}
 }
 
-func CreateCookie(c echo.Context, usr storage.Users) {
+func CreateCookie(c echo.Context, usr storage.Users) string {
 	userID := uuid.New().String()
 	cookie := new(http.Cookie)
 	cookie.Path = "/"
@@ -40,4 +40,5 @@ func CreateCookie(c echo.Context, usr storage.Users) {
 	cookie.Name = "cookie"
 	c.SetCookie(cookie)
 	c.Request().AddCookie(cookie)
+	return userID
 }

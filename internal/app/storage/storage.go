@@ -16,5 +16,5 @@ type Users interface {
 }
 
 type Cfg interface {
-	Get(key string) (any, error)
+	Get(key string) (string, error)
 }
