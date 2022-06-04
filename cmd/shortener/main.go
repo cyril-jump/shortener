@@ -1,17 +1,22 @@
 package main
 
 import (
+	"context"
 	"github.com/caarlos0/env/v6"
 	"github.com/cyril-jump/shortener/internal/app/config"
-	"github.com/cyril-jump/shortener/internal/app/handlers"
+	"github.com/cyril-jump/shortener/internal/app/server"
 	"github.com/cyril-jump/shortener/internal/app/storage"
+	"github.com/cyril-jump/shortener/internal/app/storage/postgres"
 	"github.com/cyril-jump/shortener/internal/app/storage/ram"
 	"github.com/cyril-jump/shortener/internal/app/storage/rom"
+	"github.com/cyril-jump/shortener/internal/app/storage/users"
 	"github.com/cyril-jump/shortener/internal/app/utils"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 	flag "github.com/spf13/pflag"
 	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 func init() {
@@ -25,6 +30,7 @@ func init() {
 	flag.StringVarP(&config.Flags.ServerAddress, "address", "a", config.EnvVar.ServerAddress, "server address")
 	flag.StringVarP(&config.Flags.BaseURL, "base", "b", config.EnvVar.BaseURL, "base url")
 	flag.StringVarP(&config.Flags.FileStoragePath, "file", "f", config.EnvVar.FileStoragePath, "file storage path")
+	flag.StringVarP(&config.Flags.DatabaseDSN, "psqlConn", "d", config.EnvVar.DatabaseDSN, "database URL conn")
 	flag.Parse()
 
 }
@@ -32,46 +38,58 @@ func init() {
 func main() {
 
 	var err error
+	ctx, cancel := context.WithCancel(context.Background())
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, syscall.SIGINT)
 	//db
 	var db storage.DB
 
 	//config
-	cfg := config.NewConfig(config.Flags.ServerAddress, config.Flags.BaseURL, config.Flags.FileStoragePath)
+	cfg := config.NewConfig(config.Flags.ServerAddress, config.Flags.BaseURL, config.Flags.FileStoragePath, config.Flags.DatabaseDSN)
 
-	fileStoragePath, err := cfg.Get("file_storage_path")
-	utils.CheckErr(err, "file_storage_path")
+	psqlConn, err := cfg.Get("database_dsn_str")
+	utils.CheckErr(err, "database_dsn_str")
+
+	fileStoragePath, err := cfg.Get("file_storage_path_str")
+	utils.CheckErr(err, "file_storage_path_str")
 
 	if fileStoragePath != "" {
-		db, err = rom.NewDB(fileStoragePath)
+		db, err = rom.NewDB(ctx, fileStoragePath)
 		utils.CheckErr(err, "")
+	} else if psqlConn != "" {
+		db = postgres.New(ctx, psqlConn)
 	} else {
-		db = ram.NewDB()
+		db = ram.NewDB(ctx)
 	}
-	defer db.Close()
+	usr := users.New(ctx)
 
-	//server
-	srv := handlers.New(db, cfg)
+	// Init HTTPServer
 
-	//new Echo instance
-	e := echo.New()
+	srv := server.InitSrv(db, cfg, usr)
 
-	// Middleware
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
-	e.Use(middleware.Gzip())
-	e.Use(middleware.Decompress())
+	go func() {
 
-	//Routes
-	e.GET("/:id", srv.GetURL)
-	e.POST("/", srv.PostURL)
-	e.POST("/api/shorten", srv.PostURLJSON)
+		<-signalChan
+
+		log.Println("Shutting down...")
+
+		cancel()
+		if err = srv.Shutdown(ctx); err != nil && err != ctx.Err() {
+			srv.Logger.Fatal(err)
+		}
+
+		if err = db.Close(); err != nil {
+			log.Fatal(err)
+		}
+
+	}()
 
 	// Start Server
 
-	serverAddress, err := cfg.Get("server_address")
-	utils.CheckErr(err, "server_address")
+	serverAddress, err := cfg.Get("server_address_str")
+	utils.CheckErr(err, "server_address_str")
 
-	if err = e.Start(serverAddress); err != nil {
-		e.Logger.Fatal(err)
+	if err = srv.Start(serverAddress); err != nil && err != http.ErrServerClosed {
+		srv.Logger.Fatal(err)
 	}
 }
