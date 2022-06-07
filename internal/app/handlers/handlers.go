@@ -15,16 +15,18 @@ import (
 )
 
 type Server struct {
-	db  storage.DB
-	cfg storage.Cfg
-	usr storage.Users
+	db       storage.DB
+	cfg      storage.Cfg
+	usr      storage.Users
+	inWorker storage.InWorker
 }
 
-func New(db storage.DB, config storage.Cfg, usr storage.Users) *Server {
+func New(db storage.DB, config storage.Cfg, usr storage.Users, inWorker storage.InWorker) *Server {
 	return &Server{
-		db:  db,
-		cfg: config,
-		usr: usr,
+		db:       db,
+		cfg:      config,
+		usr:      usr,
+		inWorker: inWorker,
 	}
 }
 
@@ -191,6 +193,12 @@ func (s Server) PostURLsBATCH(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusCreated, response)
+}
+
+func (s Server) DelURLsBATCH(c echo.Context) error {
+	model := &dto.Task{Id: "ggg", ShortURL: "fff"}
+	s.inWorker.Do(model)
+	return c.NoContent(http.StatusAccepted)
 }
 
 func (s Server) PingDB(c echo.Context) error {

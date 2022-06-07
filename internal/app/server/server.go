@@ -8,10 +8,10 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 )
 
-func InitSrv(db storage.DB, cfg storage.Cfg, usr storage.Users) *echo.Echo {
+func InitSrv(db storage.DB, cfg storage.Cfg, usr storage.Users, inWorker storage.InWorker) *echo.Echo {
 
 	//server
-	srv := handlers.New(db, cfg, usr)
+	srv := handlers.New(db, cfg, usr, inWorker)
 
 	//new Echo instance
 	e := echo.New()
@@ -30,6 +30,7 @@ func InitSrv(db storage.DB, cfg storage.Cfg, usr storage.Users) *echo.Echo {
 	e.POST("/", srv.PostURL)
 	e.POST("/api/shorten", srv.PostURLJSON)
 	e.POST("/api/shorten/batch", srv.PostURLsBATCH)
+	e.DELETE("/api/shorten/batch", srv.DelURLsBATCH)
 
 	return e
 

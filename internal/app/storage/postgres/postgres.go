@@ -122,6 +122,13 @@ func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
 	return nil
 }
 
+func (D *DB) DelBatchShortURLs(tasks []dto.Task) {
+	for _, t := range tasks {
+		log.Println(t)
+	}
+
+}
+
 func (D *DB) Ping() error {
 	return D.db.Ping()
 }

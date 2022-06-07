@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/cyril-jump/shortener/internal/app/dto"
 	"github.com/cyril-jump/shortener/internal/app/utils/errs"
+	"log"
 )
 
 // DB
@@ -58,6 +59,10 @@ func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
 	}
 	D.DataCache[userID] = append(D.DataCache[userID], modelURL)
 	return nil
+}
+
+func (D *DB) DelBatchShortURLs(t []dto.Task) {
+	log.Println(t)
 }
 
 func (D *DB) Ping() error {

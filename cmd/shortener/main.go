@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/caarlos0/env/v6"
 	"github.com/cyril-jump/shortener/internal/app/config"
+	"github.com/cyril-jump/shortener/internal/app/dto"
 	"github.com/cyril-jump/shortener/internal/app/server"
 	"github.com/cyril-jump/shortener/internal/app/storage"
 	"github.com/cyril-jump/shortener/internal/app/storage/postgres"
@@ -11,11 +12,14 @@ import (
 	"github.com/cyril-jump/shortener/internal/app/storage/rom"
 	"github.com/cyril-jump/shortener/internal/app/storage/users"
 	"github.com/cyril-jump/shortener/internal/app/utils"
+	"github.com/cyril-jump/shortener/internal/app/workerpool"
 	flag "github.com/spf13/pflag"
+	"golang.org/x/sync/errgroup"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 )
 
@@ -63,9 +67,23 @@ func main() {
 	}
 	usr := users.New(ctx)
 
+	// Init Workers
+	g, _ := errgroup.WithContext(ctx)
+	recordCh := make(chan *dto.Task, 50)
+	doneCh := make(chan struct{})
+	mu := &sync.Mutex{}
+
+	inWorker := workerpool.NewInputWorker(recordCh, doneCh, ctx)
+	outWorker := workerpool.NewOutputWorker(recordCh, doneCh, ctx, db, mu)
+
+	go func() {
+		g.Go(outWorker.Do)
+		g.Go(inWorker.Loop)
+	}()
+
 	// Init HTTPServer
 
-	srv := server.InitSrv(db, cfg, usr)
+	srv := server.InitSrv(db, cfg, usr, inWorker)
 
 	go func() {
 
@@ -80,6 +98,13 @@ func main() {
 
 		if err = db.Close(); err != nil {
 			log.Fatal(err)
+		}
+
+		close(recordCh)
+		close(doneCh)
+		err = g.Wait()
+		if err != nil {
+			log.Println(err)
 		}
 
 	}()
