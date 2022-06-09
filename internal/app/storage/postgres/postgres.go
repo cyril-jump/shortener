@@ -153,34 +153,44 @@ func (D *DB) DelBatchShortURLs(tasks []dto.Task) error {
 	if err != nil {
 		return err
 	}
-	tx, err := D.db.BeginTx(D.ctx, nil)
-	if err != nil {
-		return err
-	}
+	/*	tx, err := D.db.BeginTx(D.ctx, nil)
+		if err != nil {
+			return err
+		}*/
 
 	defer func() {
 		updateStmt1.Close()
 		updateStmt2.Close()
-		tx.Rollback()
+		//tx.Rollback()
 	}()
 
 	for _, t := range tasks {
-		_, err = tx.StmtContext(D.ctx, updateStmt1).ExecContext(D.ctx, t.ID)
+		_, err = updateStmt1.Exec(t.ID)
 		if err != nil {
 			log.Println(err)
 			return err
 		}
-		//r, _ := res.RowsAffected()
-		//if r != 0 {
-		_, err = tx.StmtContext(D.ctx, updateStmt2).ExecContext(D.ctx, t.ShortURL)
+		_, err = updateStmt1.Exec(t.ShortURL)
 		if err != nil {
 			log.Println(err)
 			return err
 		}
-		//}
+		/*		_, err = tx.StmtContext(D.ctx, updateStmt1).ExecContext(D.ctx, t.ID)
+				if err != nil {
+					log.Println(err)
+					return err
+				}
+				//r, _ := res.RowsAffected()
+				//if r != 0 {
+				_, err = tx.StmtContext(D.ctx, updateStmt2).ExecContext(D.ctx, t.ShortURL)
+				if err != nil {
+					log.Println(err)
+					return err
+				}
+				//}*/
 
 	}
-	tx.Commit()
+	//tx.Commit()
 	return nil
 }
 
