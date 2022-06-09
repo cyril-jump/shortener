@@ -69,16 +69,15 @@ func main() {
 
 	// Init Workers
 	g, _ := errgroup.WithContext(ctx)
-	recordCh := make(chan *dto.Task, 50)
+	recordCh := make(chan dto.Task, 50)
 	doneCh := make(chan struct{})
 	mu := &sync.Mutex{}
 
 	inWorker := workerpool.NewInputWorker(recordCh, doneCh, ctx)
-	outWorker := workerpool.NewOutputWorker(recordCh, doneCh, ctx, db, mu)
+	outWorker1 := workerpool.NewOutputWorker(recordCh, doneCh, ctx, db, mu)
 
 	go func() {
-		g.Go(outWorker.Do)
-		g.Go(inWorker.Loop)
+		g.Go(outWorker1.Do)
 	}()
 
 	// Init HTTPServer

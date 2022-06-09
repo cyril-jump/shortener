@@ -61,8 +61,9 @@ func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
 	return nil
 }
 
-func (D *DB) DelBatchShortURLs(t []dto.Task) {
+func (D *DB) DelBatchShortURLs(t []dto.Task) error {
 	log.Println(t)
+	return nil
 }
 
 func (D *DB) Ping() error {

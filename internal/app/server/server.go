@@ -30,7 +30,7 @@ func InitSrv(db storage.DB, cfg storage.Cfg, usr storage.Users, inWorker storage
 	e.POST("/", srv.PostURL)
 	e.POST("/api/shorten", srv.PostURLJSON)
 	e.POST("/api/shorten/batch", srv.PostURLsBATCH)
-	e.DELETE("/api/shorten/batch", srv.DelURLsBATCH)
+	e.DELETE("/api/user/urls", srv.DelURLsBATCH)
 
 	return e
 

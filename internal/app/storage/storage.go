@@ -6,7 +6,7 @@ type DB interface {
 	GetBaseURL(shortURL string) (string, error)
 	GetAllURLsByUserID(userID string) ([]dto.ModelURL, error)
 	SetShortURL(userID, shortURL, baseURL string) error
-	DelBatchShortURLs(tasks []dto.Task)
+	DelBatchShortURLs(tasks []dto.Task) error
 	Ping() error
 	Close() error
 }
@@ -21,6 +21,5 @@ type Cfg interface {
 }
 
 type InWorker interface {
-	Do(t *dto.Task)
-	Loop() error
+	Do(t dto.Task)
 }

@@ -47,6 +47,7 @@ func (s Server) PostURL(c echo.Context) error {
 	}
 
 	body, err := io.ReadAll(c.Request().Body)
+	log.Println(string(body))
 	if err != nil || len(body) == 0 {
 		return c.NoContent(http.StatusBadRequest)
 	}
@@ -58,6 +59,7 @@ func (s Server) PostURL(c echo.Context) error {
 	baseURL = string(body)
 
 	if err := s.db.SetShortURL(userID, shortURL, baseURL); err != nil {
+		log.Println(err)
 		if errors.Is(err, errs.ErrAlreadyExists) {
 			return c.String(http.StatusConflict, shortURL)
 		}
@@ -82,11 +84,15 @@ func (s Server) GetURL(c echo.Context) error {
 	}
 
 	if baseURL, err = s.db.GetBaseURL(shortURL); err != nil {
-		return c.NoContent(http.StatusBadRequest)
-	} else {
-		c.Response().Header().Set("Location", baseURL)
-		return c.NoContent(http.StatusTemporaryRedirect)
+		if errors.Is(err, errs.ErrWasDeleted) {
+			return c.NoContent(http.StatusGone)
+		} else {
+			return c.NoContent(http.StatusBadRequest)
+		}
 	}
+
+	c.Response().Header().Set("Location", baseURL)
+	return c.NoContent(http.StatusTemporaryRedirect)
 }
 
 func (s Server) PostURLJSON(c echo.Context) error {
@@ -196,8 +202,38 @@ func (s Server) PostURLsBATCH(c echo.Context) error {
 }
 
 func (s Server) DelURLsBATCH(c echo.Context) error {
-	model := &dto.Task{Id: "ggg", ShortURL: "fff"}
-	s.inWorker.Do(model)
+
+	//s.inWorker.Do(model)
+
+	var userID string
+
+	if id := c.Request().Context().Value(config.CookieKey); id != nil {
+		userID = id.(string)
+	}
+
+	if userID == "" {
+		userID = utils.CreateCookie(c, s.usr)
+	}
+	var model dto.Task
+	model.Id = userID
+
+	body, err := io.ReadAll(c.Request().Body)
+	if err != nil || len(body) == 0 {
+		log.Println(err)
+		log.Println(string(body))
+		return c.NoContent(http.StatusBadRequest)
+	}
+	deleteURLs := make([]string, 0)
+	err = json.Unmarshal(body, &deleteURLs)
+	if err != nil {
+		log.Println(err)
+		return c.NoContent(http.StatusBadRequest)
+	}
+	for _, url := range deleteURLs {
+		model.ShortURL = url
+		s.inWorker.Do(model)
+	}
+
 	return c.NoContent(http.StatusAccepted)
 }
 
