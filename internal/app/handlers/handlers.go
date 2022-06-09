@@ -215,7 +215,7 @@ func (s Server) DelURLsBATCH(c echo.Context) error {
 		userID = utils.CreateCookie(c, s.usr)
 	}
 	var model dto.Task
-	model.Id = userID
+	model.ID = userID
 
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil || len(body) == 0 {

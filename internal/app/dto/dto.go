@@ -26,6 +26,6 @@ type ModelResponseURL struct {
 }
 
 type Task struct {
-	Id       string
+	ID       string
 	ShortURL string
 }

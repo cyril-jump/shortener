@@ -162,7 +162,7 @@ func (D *DB) DelBatchShortURLs(tasks []dto.Task) error {
 	}()
 
 	for _, t := range tasks {
-		_, err = tx.StmtContext(D.ctx, updateStmt1).ExecContext(D.ctx, t.Id)
+		_, err = tx.StmtContext(D.ctx, updateStmt1).ExecContext(D.ctx, t.ID)
 		if err != nil {
 			log.Println(err)
 			return err
