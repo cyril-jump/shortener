@@ -48,14 +48,14 @@ func (w *InputWorker) Do(t dto.Task) {
 	w.ch <- t
 	w.index++
 	log.Println(w.index)
-	if w.index == 20 {
+	if w.index == 11 {
 		w.done <- struct{}{}
 		w.index = 0
 	}
 }
 
 func (w *OutputWorker) Do() error {
-	timer := time.NewTicker(15 * time.Second)
+	timer := time.NewTicker(10 * time.Second)
 	models := make([]dto.Task, 0, 1)
 	defer timer.Stop()
 	for {
@@ -79,6 +79,9 @@ func (w *OutputWorker) Do() error {
 			}
 		case <-timer.C:
 			log.Println("timer")
+			if len(w.ch) == 0 {
+				break
+			}
 			for task := range w.ch {
 				models = append(models, task)
 				if len(w.ch) == 0 {
