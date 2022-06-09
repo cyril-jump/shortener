@@ -45,6 +45,7 @@ func (s Server) PostURL(c echo.Context) error {
 	if userID == "" {
 		userID = utils.CreateCookie(c, s.usr)
 	}
+	log.Println(userID, "userID")
 
 	body, err := io.ReadAll(c.Request().Body)
 	log.Println(string(body))
@@ -74,6 +75,12 @@ func (s Server) GetURL(c echo.Context) error {
 		shortURL, baseURL string
 	)
 	var err error
+	var userID string
+
+	if id := c.Request().Context().Value(config.CookieKey); id != nil {
+		userID = id.(string)
+	}
+	log.Println(userID, "userID")
 
 	if c.Param("urlID") == "" {
 		return c.NoContent(http.StatusBadRequest)
@@ -108,6 +115,7 @@ func (s Server) PostURLJSON(c echo.Context) error {
 	if userID == "" {
 		userID = utils.CreateCookie(c, s.usr)
 	}
+	log.Println(userID, "userID")
 
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil || len(body) == 0 {
@@ -153,6 +161,7 @@ func (s Server) GetURLsByUserID(c echo.Context) error {
 	if userID == "" {
 		userID = utils.CreateCookie(c, s.usr)
 	}
+	log.Println(userID, "userID")
 
 	if URLs, err = s.db.GetAllURLsByUserID(userID); err != nil || URLs == nil {
 		return c.NoContent(http.StatusNoContent)
@@ -175,6 +184,7 @@ func (s Server) PostURLsBATCH(c echo.Context) error {
 	if userID == "" {
 		userID = utils.CreateCookie(c, s.usr)
 	}
+	log.Println(userID, "userID")
 
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil || len(body) == 0 {
@@ -214,6 +224,7 @@ func (s Server) DelURLsBATCH(c echo.Context) error {
 	if userID == "" {
 		userID = utils.CreateCookie(c, s.usr)
 	}
+	log.Println(userID, "userID")
 	var model dto.Task
 	model.ID = userID
 

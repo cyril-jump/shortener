@@ -14,25 +14,6 @@ type DB struct {
 	ctx context.Context
 }
 
-func (D *DB) GetBaseURL(shortURL string) (string, error) {
-	var baseURL string
-	var countURL int
-	selectStmt, err := D.db.Prepare("SELECT base_url, count_url FROM urls WHERE short_url=$1;")
-	if err != nil {
-		return "", err
-	}
-	defer selectStmt.Close()
-
-	if err = selectStmt.QueryRow(shortURL).Scan(&baseURL, &countURL); err != nil {
-		return "", err
-	}
-	if countURL == 0 {
-		return "", errs.ErrWasDeleted
-	}
-	return baseURL, nil
-
-}
-
 func New(ctx context.Context, psqlConn string) *DB {
 	db, err := sql.Open("pgx", psqlConn)
 	if err != nil {
@@ -55,10 +36,31 @@ func New(ctx context.Context, psqlConn string) *DB {
 	}
 }
 
+func (D *DB) GetBaseURL(shortURL string) (string, error) {
+	var baseURL string
+	countURL := 0
+	selectStmt, err := D.db.Prepare("SELECT base_url, count_url FROM urls WHERE short_url=$1;")
+	if err != nil {
+		return "", err
+	}
+	defer selectStmt.Close()
+
+	if err = selectStmt.QueryRow(shortURL).Scan(&baseURL, &countURL); err != nil {
+		return "", err
+	}
+	if countURL == 0 {
+		log.Println(countURL)
+		return "", errs.ErrWasDeleted
+	}
+	log.Println(countURL)
+	return baseURL, nil
+
+}
+
 func (D *DB) GetAllURLsByUserID(userID string) ([]dto.ModelURL, error) {
 	var modelURL []dto.ModelURL
 	var model dto.ModelURL
-	selectStmt, err := D.db.Prepare("SELECT short_url, base_url FROM users_url RIGHT JOIN urls u on users_url.url_id=u.id WHERE user_id=$1 AND  count_url > 0;")
+	selectStmt, err := D.db.Prepare("SELECT short_url, base_url FROM users_url RIGHT JOIN urls u on users_url.url_id=u.id WHERE user_id=$1 AND  count_url = 1;")
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +149,7 @@ func (D *DB) DelBatchShortURLs(tasks []dto.Task) error {
 	if err != nil {
 		return err
 	}
-	updateStmt2, err := D.db.Prepare("UPDATE urls SET count_url = count_url - 1  WHERE short_url = $1;")
+	updateStmt2, err := D.db.Prepare("UPDATE urls SET count_url = 0  WHERE short_url = $1;")
 	if err != nil {
 		return err
 	}
