@@ -106,7 +106,7 @@ func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
 		return err
 	}
 
-	updateStmt1, err := D.db.Prepare("UPDATE urls SET count_url = count_url + 1  WHERE base_url = $1;")
+	updateStmt1, err := D.db.Prepare("UPDATE urls SET count_url = 1  WHERE base_url = $1;")
 	if err != nil {
 		return err
 	}
@@ -160,6 +160,7 @@ func (D *DB) DelBatchShortURLs(tasks []dto.Task) error {
 
 	defer func() {
 		updateStmt1.Close()
+		updateStmt2.Close()
 		tx.Rollback()
 	}()
 
@@ -196,7 +197,7 @@ var schema = `
 		id serial primary key,
 		base_url text not null unique,
 		short_url text not null,
-	    count_url int not null DEFAULT 0
+	    count_url integer not null DEFAULT 0
 	);
 	CREATE TABLE IF NOT EXISTS users_url(
 	  user_id text not null,
