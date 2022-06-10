@@ -52,7 +52,7 @@ func (w *InputWorker) Do(t dto.Task) {
 	w.ch <- t
 	w.index++
 	log.Println(w.index)
-	if w.index == 12 {
+	if w.index == 1 {
 		w.done <- struct{}{}
 		w.index = 0
 	}
@@ -72,7 +72,7 @@ func (w *InputWorker) Loop() error {
 }
 
 func (w *OutputWorker) Do() error {
-	models := make([]dto.Task, 0, 1)
+	models := make([]dto.Task, 0, 200)
 	for {
 		select {
 		case <-w.ctx.Done():
@@ -84,18 +84,15 @@ func (w *OutputWorker) Do() error {
 			log.Println("chReady")
 			for task := range w.ch {
 				models = append(models, task)
-				if len(w.ch) == 0 {
-					w.mu.Lock()
-					if err := w.db.DelBatchShortURLs(models); err != nil {
-						log.Println(err)
-					}
-					w.mu.Unlock()
-					models = nil
-					break
+				//if len(w.ch) == 0 {
+				if err := w.db.DelBatchShortURLs(models); err != nil {
+					log.Println(err, "error del")
 				}
+				models = nil
+				break
+				//}
 
 			}
 		}
 	}
-
 }
