@@ -18,6 +18,7 @@ type InputWorker struct {
 }
 
 type OutputWorker struct {
+	id   int
 	ch   chan dto.Task
 	done chan struct{}
 	db   storage.DB
@@ -37,8 +38,9 @@ func NewInputWorker(ch chan dto.Task, done chan struct{}, ctx context.Context) *
 	}
 }
 
-func NewOutputWorker(ch chan dto.Task, done chan struct{}, ctx context.Context, db storage.DB, mu *sync.Mutex) *OutputWorker {
+func NewOutputWorker(id int, ch chan dto.Task, done chan struct{}, ctx context.Context, db storage.DB, mu *sync.Mutex) *OutputWorker {
 	return &OutputWorker{
+		id:   id,
 		ch:   ch,
 		done: done,
 		ctx:  ctx,
@@ -52,7 +54,7 @@ func (w *InputWorker) Do(t dto.Task) {
 	w.ch <- t
 	w.index++
 	log.Println(w.index)
-	if w.index == 1 {
+	if w.index == 20 {
 		w.done <- struct{}{}
 		w.index = 0
 	}
@@ -72,7 +74,7 @@ func (w *InputWorker) Loop() error {
 }
 
 func (w *OutputWorker) Do() error {
-	models := make([]dto.Task, 0, 200)
+	models := make([]dto.Task, 0, 20)
 	for {
 		select {
 		case <-w.ctx.Done():
@@ -83,15 +85,15 @@ func (w *OutputWorker) Do() error {
 			}
 			log.Println("chReady")
 			for task := range w.ch {
+				log.Println(w.id, "id out worker")
 				models = append(models, task)
-				//if len(w.ch) == 0 {
-				if err := w.db.DelBatchShortURLs(models); err != nil {
-					log.Println(err, "error del")
+				if len(w.ch) == 0 {
+					if err := w.db.DelBatchShortURLs(models); err != nil {
+						log.Println(err, "error del")
+					}
+					models = nil
+					break
 				}
-				models = nil
-				break
-				//}
-
 			}
 		}
 	}

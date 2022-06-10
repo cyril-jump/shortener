@@ -19,6 +19,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
 	"sync"
 	"syscall"
 )
@@ -74,12 +75,12 @@ func main() {
 	mu := &sync.Mutex{}
 
 	inWorker := workerpool.NewInputWorker(recordCh, doneCh, ctx)
-	outWorker := workerpool.NewOutputWorker(recordCh, doneCh, ctx, db, mu)
-
-	go func() {
-		g.Go(inWorker.Loop)
+	for i := 1; i <= runtime.NumCPU(); i++ {
+		outWorker := workerpool.NewOutputWorker(i, recordCh, doneCh, ctx, db, mu)
 		g.Go(outWorker.Do)
-	}()
+	}
+
+	g.Go(inWorker.Loop)
 
 	// Init HTTPServer
 

@@ -212,10 +212,9 @@ func (s Server) PostURLsBATCH(c echo.Context) error {
 }
 
 func (s Server) DelURLsBATCH(c echo.Context) error {
-
-	//s.inWorker.Do(model)
-
 	var userID string
+	hostName, err := s.cfg.Get("base_url_str")
+	utils.CheckErr(err, "base_url_str")
 
 	if id := c.Request().Context().Value(config.CookieKey); id != nil {
 		userID = id.(string)
@@ -241,7 +240,7 @@ func (s Server) DelURLsBATCH(c echo.Context) error {
 		return c.NoContent(http.StatusBadRequest)
 	}
 	for _, url := range deleteURLs {
-		model.ShortURL = url
+		model.ShortURL = hostName + "/" + url
 		s.inWorker.Do(model)
 	}
 
