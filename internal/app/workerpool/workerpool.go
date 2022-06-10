@@ -5,7 +5,6 @@ import (
 	"github.com/cyril-jump/shortener/internal/app/dto"
 	"github.com/cyril-jump/shortener/internal/app/storage"
 	"log"
-	"sync"
 	"time"
 )
 
@@ -23,7 +22,6 @@ type OutputWorker struct {
 	done chan struct{}
 	db   storage.DB
 	ctx  context.Context
-	mu   *sync.Mutex
 }
 
 func NewInputWorker(ch chan dto.Task, done chan struct{}, ctx context.Context) *InputWorker {
@@ -38,14 +36,13 @@ func NewInputWorker(ch chan dto.Task, done chan struct{}, ctx context.Context) *
 	}
 }
 
-func NewOutputWorker(id int, ch chan dto.Task, done chan struct{}, ctx context.Context, db storage.DB, mu *sync.Mutex) *OutputWorker {
+func NewOutputWorker(id int, ch chan dto.Task, done chan struct{}, ctx context.Context, db storage.DB) *OutputWorker {
 	return &OutputWorker{
 		id:   id,
 		ch:   ch,
 		done: done,
 		ctx:  ctx,
 		db:   db,
-		mu:   mu,
 	}
 }
 
@@ -64,9 +61,9 @@ func (w *InputWorker) Loop() error {
 	for {
 		select {
 		case <-w.ctx.Done():
+			w.ticker.Stop()
 			return nil
 		case <-w.ticker.C:
-			log.Println("timer")
 			w.done <- struct{}{}
 			w.index = 0
 		}
@@ -83,13 +80,11 @@ func (w *OutputWorker) Do() error {
 			if len(w.ch) == 0 {
 				break
 			}
-			log.Println("chReady")
 			for task := range w.ch {
-				log.Println(w.id, "id out worker")
 				models = append(models, task)
 				if len(w.ch) == 0 {
 					if err := w.db.DelBatchShortURLs(models); err != nil {
-						log.Println(err, "error del")
+						return err
 					}
 					models = nil
 					break

@@ -45,10 +45,8 @@ func (s Server) PostURL(c echo.Context) error {
 	if userID == "" {
 		userID = utils.CreateCookie(c, s.usr)
 	}
-	log.Println(userID, "userID")
 
 	body, err := io.ReadAll(c.Request().Body)
-	log.Println(string(body))
 	if err != nil || len(body) == 0 {
 		return c.NoContent(http.StatusBadRequest)
 	}
@@ -75,12 +73,6 @@ func (s Server) GetURL(c echo.Context) error {
 		shortURL, baseURL string
 	)
 	var err error
-	var userID string
-
-	if id := c.Request().Context().Value(config.CookieKey); id != nil {
-		userID = id.(string)
-	}
-	log.Println(userID, "userID")
 
 	if c.Param("urlID") == "" {
 		return c.NoContent(http.StatusBadRequest)
@@ -115,7 +107,6 @@ func (s Server) PostURLJSON(c echo.Context) error {
 	if userID == "" {
 		userID = utils.CreateCookie(c, s.usr)
 	}
-	log.Println(userID, "userID")
 
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil || len(body) == 0 {
@@ -133,8 +124,6 @@ func (s Server) PostURLJSON(c echo.Context) error {
 
 	hostName, err := s.cfg.Get("base_url_str")
 	utils.CheckErr(err, "base_url_str")
-
-	//userID, _ = s.usr.GetUserID(userName)
 
 	response.ShortURL = utils.Hash([]byte(request.BaseURL), hostName)
 	if err = s.db.SetShortURL(userID, response.ShortURL, request.BaseURL); err != nil {
@@ -161,7 +150,6 @@ func (s Server) GetURLsByUserID(c echo.Context) error {
 	if userID == "" {
 		userID = utils.CreateCookie(c, s.usr)
 	}
-	log.Println(userID, "userID")
 
 	if URLs, err = s.db.GetAllURLsByUserID(userID); err != nil || URLs == nil {
 		return c.NoContent(http.StatusNoContent)
@@ -184,7 +172,6 @@ func (s Server) PostURLsBATCH(c echo.Context) error {
 	if userID == "" {
 		userID = utils.CreateCookie(c, s.usr)
 	}
-	log.Println(userID, "userID")
 
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil || len(body) == 0 {
@@ -229,14 +216,11 @@ func (s Server) DelURLsBATCH(c echo.Context) error {
 
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil || len(body) == 0 {
-		log.Println(err)
-		log.Println(string(body))
 		return c.NoContent(http.StatusBadRequest)
 	}
 	deleteURLs := make([]string, 0)
 	err = json.Unmarshal(body, &deleteURLs)
 	if err != nil {
-		log.Println(err)
 		return c.NoContent(http.StatusBadRequest)
 	}
 	for _, url := range deleteURLs {

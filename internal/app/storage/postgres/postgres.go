@@ -55,10 +55,8 @@ func (D *DB) GetBaseURL(shortURL string) (string, error) {
 		return "", err
 	}
 	if countURL == 0 {
-		log.Println(countURL, "count URL")
 		return "", errs.ErrWasDeleted
 	}
-	log.Println(countURL, "count URL")
 	return baseURL, nil
 
 }
@@ -67,7 +65,7 @@ func (D *DB) GetAllURLsByUserID(userID string) ([]dto.ModelURL, error) {
 	D.mu.Lock()
 	var modelURL []dto.ModelURL
 	var model dto.ModelURL
-	selectStmt, err := D.db.Prepare("SELECT short_url, base_url FROM users_url RIGHT JOIN urls u on users_url.url_id=u.id WHERE user_id=$1 AND  count_url = 1;")
+	selectStmt, err := D.db.Prepare("SELECT short_url, base_url FROM users_url RIGHT JOIN urls u on users_url.url_id=u.id WHERE user_id=$1 AND  count_url > 0;")
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +114,7 @@ func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
 		return err
 	}
 
-	updateStmt1, err := D.db.Prepare("UPDATE urls SET count_url = 1  WHERE base_url = $1;")
+	updateStmt1, err := D.db.Prepare("UPDATE urls SET count_url = count_url + 1  WHERE base_url = $1;")
 	if err != nil {
 		return err
 	}
@@ -135,7 +133,6 @@ func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
 	}()
 
 	insertStmt1.QueryRow(baseURL, shortURL).Scan(&id)
-	log.Println(shortURL, "=====", id)
 	if id != 0 {
 		_, err = tx.StmtContext(D.ctx, insertStmt2).ExecContext(D.ctx, userID, id)
 		if err != nil {
@@ -159,11 +156,11 @@ func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
 func (D *DB) DelBatchShortURLs(tasks []dto.Task) error {
 	D.mu.Lock()
 	id := 0
-	updateStmt1, err := D.db.Prepare("UPDATE users_url SET is_deleted = true WHERE user_id = $1 AND url_id = $2")
+	updateStmt2, err := D.db.Prepare("UPDATE users_url SET is_deleted = true WHERE user_id = $1 AND url_id = $2")
 	if err != nil {
 		return err
 	}
-	updateStmt2, err := D.db.Prepare("UPDATE urls SET count_url = 0  WHERE short_url = $1 RETURNING id;")
+	updateStmt1, err := D.db.Prepare("UPDATE urls SET count_url = count_url - 1  WHERE short_url = $1 RETURNING id;")
 	if err != nil {
 		return err
 	}
@@ -180,20 +177,15 @@ func (D *DB) DelBatchShortURLs(tasks []dto.Task) error {
 	}()
 
 	for _, t := range tasks {
-		_ = tx.StmtContext(D.ctx, updateStmt2).QueryRowContext(D.ctx, t.ShortURL).Scan(&id)
+		_ = tx.StmtContext(D.ctx, updateStmt1).QueryRowContext(D.ctx, t.ShortURL).Scan(&id)
 		if err != nil {
-			log.Println(err)
 			return err
 		}
-		log.Println(t.ShortURL, "=====", id)
-		//r, _ := res.RowsAffected()
-		//if r != 0 {
-		_, err = tx.StmtContext(D.ctx, updateStmt1).ExecContext(D.ctx, t.ID, id)
+
+		_, err = tx.StmtContext(D.ctx, updateStmt2).ExecContext(D.ctx, t.ID, id)
 		if err != nil {
-			log.Println(err)
 			return err
 		}
-		//}
 		id = 0
 	}
 	tx.Commit()

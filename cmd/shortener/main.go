@@ -20,7 +20,6 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
-	"sync"
 	"syscall"
 )
 
@@ -72,11 +71,10 @@ func main() {
 	g, _ := errgroup.WithContext(ctx)
 	recordCh := make(chan dto.Task, 50)
 	doneCh := make(chan struct{})
-	mu := &sync.Mutex{}
 
 	inWorker := workerpool.NewInputWorker(recordCh, doneCh, ctx)
 	for i := 1; i <= runtime.NumCPU(); i++ {
-		outWorker := workerpool.NewOutputWorker(i, recordCh, doneCh, ctx, db, mu)
+		outWorker := workerpool.NewOutputWorker(i, recordCh, doneCh, ctx, db)
 		g.Go(outWorker.Do)
 	}
 
