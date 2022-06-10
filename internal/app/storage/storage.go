@@ -22,4 +22,5 @@ type Cfg interface {
 
 type InWorker interface {
 	Do(t dto.Task)
+	Loop() error
 }

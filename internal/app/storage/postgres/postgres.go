@@ -7,9 +7,11 @@ import (
 	"github.com/cyril-jump/shortener/internal/app/utils/errs"
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"log"
+	"sync"
 )
 
 type DB struct {
+	mu  sync.Mutex
 	db  *sql.DB
 	ctx context.Context
 }
@@ -37,13 +39,17 @@ func New(ctx context.Context, psqlConn string) *DB {
 }
 
 func (D *DB) GetBaseURL(shortURL string) (string, error) {
+	D.mu.Lock()
 	var baseURL string
 	countURL := 0
 	selectStmt, err := D.db.Prepare("SELECT base_url, count_url FROM urls WHERE short_url=$1;")
 	if err != nil {
 		return "", err
 	}
-	defer selectStmt.Close()
+	defer func() {
+		selectStmt.Close()
+		D.mu.Unlock()
+	}()
 
 	if err = selectStmt.QueryRow(shortURL).Scan(&baseURL, &countURL); err != nil {
 		return "", err
@@ -58,13 +64,17 @@ func (D *DB) GetBaseURL(shortURL string) (string, error) {
 }
 
 func (D *DB) GetAllURLsByUserID(userID string) ([]dto.ModelURL, error) {
+	D.mu.Lock()
 	var modelURL []dto.ModelURL
 	var model dto.ModelURL
 	selectStmt, err := D.db.Prepare("SELECT short_url, base_url FROM users_url RIGHT JOIN urls u on users_url.url_id=u.id WHERE user_id=$1 AND  count_url = 1;")
 	if err != nil {
 		return nil, err
 	}
-	defer selectStmt.Close()
+	defer func() {
+		selectStmt.Close()
+		D.mu.Unlock()
+	}()
 
 	row, err := selectStmt.Query(userID)
 	if err != nil {
@@ -88,6 +98,7 @@ func (D *DB) GetAllURLsByUserID(userID string) ([]dto.ModelURL, error) {
 }
 
 func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
+	D.mu.Lock()
 	var id, userURLID int
 
 	insertStmt1, err := D.db.Prepare("INSERT INTO urls (base_url, short_url) VALUES ($1, $2) RETURNING (id)")
@@ -99,7 +110,6 @@ func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
 	if err != nil {
 		return err
 	}
-	defer insertStmt2.Close()
 
 	selectStmt1, err := D.db.Prepare("SELECT id FROM urls WHERE base_url = $1;")
 	if err != nil {
@@ -121,6 +131,7 @@ func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
 		selectStmt1.Close()
 		updateStmt1.Close()
 		tx.Rollback()
+		D.mu.Unlock()
 	}()
 
 	insertStmt1.QueryRow(baseURL, shortURL).Scan(&id)
@@ -145,52 +156,46 @@ func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
 }
 
 func (D *DB) DelBatchShortURLs(tasks []dto.Task) error {
-	updateStmt1, err := D.db.Prepare("UPDATE users_url SET is_deleted = true WHERE user_id = $1")
+	D.mu.Lock()
+	var id int
+	updateStmt1, err := D.db.Prepare("UPDATE users_url SET is_deleted = true WHERE (user_id = $1 AND url_id = $2)")
 	if err != nil {
 		return err
 	}
-	updateStmt2, err := D.db.Prepare("UPDATE urls SET count_url = 0  WHERE short_url = $1;")
+	updateStmt2, err := D.db.Prepare("UPDATE urls SET count_url = 0  WHERE short_url = $1 RETURNING id;")
 	if err != nil {
 		return err
 	}
-	/*	tx, err := D.db.BeginTx(D.ctx, nil)
-		if err != nil {
-			return err
-		}*/
+	tx, err := D.db.BeginTx(D.ctx, nil)
+	if err != nil {
+		return err
+	}
 
 	defer func() {
 		updateStmt1.Close()
 		updateStmt2.Close()
-		//tx.Rollback()
+		D.mu.Unlock()
+		tx.Rollback()
 	}()
 
 	for _, t := range tasks {
-		_, err = updateStmt1.Exec(t.ID)
+		_ = tx.StmtContext(D.ctx, updateStmt2).QueryRowContext(D.ctx, t.ShortURL).Scan(&id)
 		if err != nil {
 			log.Println(err)
 			return err
 		}
-		_, err = updateStmt1.Exec(t.ShortURL)
+		log.Println(id, "id")
+		//r, _ := res.RowsAffected()
+		//if r != 0 {
+		_, err = tx.StmtContext(D.ctx, updateStmt1).ExecContext(D.ctx, t.ID, id)
 		if err != nil {
 			log.Println(err)
 			return err
 		}
-		/*		_, err = tx.StmtContext(D.ctx, updateStmt1).ExecContext(D.ctx, t.ID)
-				if err != nil {
-					log.Println(err)
-					return err
-				}
-				//r, _ := res.RowsAffected()
-				//if r != 0 {
-				_, err = tx.StmtContext(D.ctx, updateStmt2).ExecContext(D.ctx, t.ShortURL)
-				if err != nil {
-					log.Println(err)
-					return err
-				}
-				//}*/
+		//}
 
 	}
-	//tx.Commit()
+	tx.Commit()
 	return nil
 }
 

@@ -74,10 +74,11 @@ func main() {
 	mu := &sync.Mutex{}
 
 	inWorker := workerpool.NewInputWorker(recordCh, doneCh, ctx)
-	outWorker1 := workerpool.NewOutputWorker(recordCh, doneCh, ctx, db, mu)
+	outWorker := workerpool.NewOutputWorker(recordCh, doneCh, ctx, db, mu)
 
 	go func() {
-		g.Go(outWorker1.Do)
+		g.Go(inWorker.Loop)
+		g.Go(outWorker.Do)
 	}()
 
 	// Init HTTPServer

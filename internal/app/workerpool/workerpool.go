@@ -10,10 +10,11 @@ import (
 )
 
 type InputWorker struct {
-	ch    chan dto.Task
-	done  chan struct{}
-	index int
-	ctx   context.Context
+	ch     chan dto.Task
+	done   chan struct{}
+	index  int
+	ticker *time.Ticker
+	ctx    context.Context
 }
 
 type OutputWorker struct {
@@ -26,11 +27,13 @@ type OutputWorker struct {
 
 func NewInputWorker(ch chan dto.Task, done chan struct{}, ctx context.Context) *InputWorker {
 	index := 0
+	ticker := time.NewTicker(10 * time.Second)
 	return &InputWorker{
-		ch:    ch,
-		done:  done,
-		index: index,
-		ctx:   ctx,
+		ch:     ch,
+		done:   done,
+		index:  index,
+		ticker: ticker,
+		ctx:    ctx,
 	}
 }
 
@@ -45,43 +48,41 @@ func NewOutputWorker(ch chan dto.Task, done chan struct{}, ctx context.Context, 
 }
 
 func (w *InputWorker) Do(t dto.Task) {
+
 	w.ch <- t
 	w.index++
 	log.Println(w.index)
-	if w.index == 11 {
+	if w.index == 12 {
 		w.done <- struct{}{}
 		w.index = 0
 	}
 }
 
+func (w *InputWorker) Loop() error {
+	for {
+		select {
+		case <-w.ctx.Done():
+			return nil
+		case <-w.ticker.C:
+			log.Println("timer")
+			w.done <- struct{}{}
+			w.index = 0
+			break
+		}
+	}
+}
+
 func (w *OutputWorker) Do() error {
-	timer := time.NewTicker(10 * time.Second)
 	models := make([]dto.Task, 0, 1)
-	defer timer.Stop()
 	for {
 		select {
 		case <-w.ctx.Done():
 			return nil
 		case <-w.done:
-			log.Println("chReady")
-			for task := range w.ch {
-				models = append(models, task)
-				if len(w.ch) == 0 {
-					w.mu.Lock()
-					if err := w.db.DelBatchShortURLs(models); err != nil {
-						log.Println(err)
-					}
-					w.mu.Unlock()
-					models = nil
-					break
-				}
-
-			}
-		case <-timer.C:
-			log.Println("timer")
 			if len(w.ch) == 0 {
 				break
 			}
+			log.Println("chReady")
 			for task := range w.ch {
 				models = append(models, task)
 				if len(w.ch) == 0 {
