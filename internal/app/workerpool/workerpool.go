@@ -67,7 +67,6 @@ func (w *InputWorker) Loop() error {
 			log.Println("timer")
 			w.done <- struct{}{}
 			w.index = 0
-			break
 		}
 	}
 }
