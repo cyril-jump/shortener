@@ -5,6 +5,7 @@ import (
 	"github.com/cyril-jump/shortener/internal/app/dto"
 	"github.com/cyril-jump/shortener/internal/app/storage"
 	"log"
+	"sync"
 	"time"
 )
 
@@ -14,6 +15,7 @@ type InputWorker struct {
 	index  int
 	ticker *time.Ticker
 	ctx    context.Context
+	mu     *sync.Mutex
 }
 
 type OutputWorker struct {
@@ -22,9 +24,10 @@ type OutputWorker struct {
 	done chan struct{}
 	db   storage.DB
 	ctx  context.Context
+	mu   *sync.Mutex
 }
 
-func NewInputWorker(ch chan dto.Task, done chan struct{}, ctx context.Context) *InputWorker {
+func NewInputWorker(ch chan dto.Task, done chan struct{}, ctx context.Context, mu *sync.Mutex) *InputWorker {
 	index := 0
 	ticker := time.NewTicker(10 * time.Second)
 	return &InputWorker{
@@ -33,21 +36,24 @@ func NewInputWorker(ch chan dto.Task, done chan struct{}, ctx context.Context) *
 		index:  index,
 		ticker: ticker,
 		ctx:    ctx,
+		mu:     mu,
 	}
 }
 
-func NewOutputWorker(id int, ch chan dto.Task, done chan struct{}, ctx context.Context, db storage.DB) *OutputWorker {
+func NewOutputWorker(id int, ch chan dto.Task, done chan struct{}, ctx context.Context, db storage.DB, mu *sync.Mutex) *OutputWorker {
 	return &OutputWorker{
 		id:   id,
 		ch:   ch,
 		done: done,
 		ctx:  ctx,
 		db:   db,
+		mu:   mu,
 	}
 }
 
 func (w *InputWorker) Do(t dto.Task) {
-
+	w.mu.Lock()
+	defer w.mu.Unlock()
 	w.ch <- t
 	w.index++
 	log.Println(w.index)
@@ -64,8 +70,10 @@ func (w *InputWorker) Loop() error {
 			w.ticker.Stop()
 			return nil
 		case <-w.ticker.C:
+			w.mu.Lock()
 			w.done <- struct{}{}
 			w.index = 0
+			w.mu.Unlock()
 		}
 	}
 }
