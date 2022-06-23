@@ -24,3 +24,8 @@ type ModelRequestURL struct {
 type ModelResponseURL struct {
 	ShortURL string `json:"result"`
 }
+
+type Task struct {
+	ID       string
+	ShortURL string
+}

@@ -15,16 +15,18 @@ import (
 )
 
 type Server struct {
-	db  storage.DB
-	cfg storage.Cfg
-	usr storage.Users
+	db       storage.DB
+	cfg      storage.Cfg
+	usr      storage.Users
+	inWorker storage.InWorker
 }
 
-func New(db storage.DB, config storage.Cfg, usr storage.Users) *Server {
+func New(db storage.DB, config storage.Cfg, usr storage.Users, inWorker storage.InWorker) *Server {
 	return &Server{
-		db:  db,
-		cfg: config,
-		usr: usr,
+		db:       db,
+		cfg:      config,
+		usr:      usr,
+		inWorker: inWorker,
 	}
 }
 
@@ -56,6 +58,7 @@ func (s Server) PostURL(c echo.Context) error {
 	baseURL = string(body)
 
 	if err := s.db.SetShortURL(userID, shortURL, baseURL); err != nil {
+		log.Println(err)
 		if errors.Is(err, errs.ErrAlreadyExists) {
 			return c.String(http.StatusConflict, shortURL)
 		}
@@ -80,11 +83,15 @@ func (s Server) GetURL(c echo.Context) error {
 	}
 
 	if baseURL, err = s.db.GetBaseURL(shortURL); err != nil {
-		return c.NoContent(http.StatusBadRequest)
-	} else {
-		c.Response().Header().Set("Location", baseURL)
-		return c.NoContent(http.StatusTemporaryRedirect)
+		if errors.Is(err, errs.ErrWasDeleted) {
+			return c.NoContent(http.StatusGone)
+		} else {
+			return c.NoContent(http.StatusBadRequest)
+		}
 	}
+
+	c.Response().Header().Set("Location", baseURL)
+	return c.NoContent(http.StatusTemporaryRedirect)
 }
 
 func (s Server) PostURLJSON(c echo.Context) error {
@@ -117,8 +124,6 @@ func (s Server) PostURLJSON(c echo.Context) error {
 
 	hostName, err := s.cfg.Get("base_url_str")
 	utils.CheckErr(err, "base_url_str")
-
-	//userID, _ = s.usr.GetUserID(userName)
 
 	response.ShortURL = utils.Hash([]byte(request.BaseURL), hostName)
 	if err = s.db.SetShortURL(userID, response.ShortURL, request.BaseURL); err != nil {
@@ -191,6 +196,39 @@ func (s Server) PostURLsBATCH(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusCreated, response)
+}
+
+func (s Server) DelURLsBATCH(c echo.Context) error {
+	var userID string
+	hostName, err := s.cfg.Get("base_url_str")
+	utils.CheckErr(err, "base_url_str")
+
+	if id := c.Request().Context().Value(config.CookieKey); id != nil {
+		userID = id.(string)
+	}
+
+	if userID == "" {
+		userID = utils.CreateCookie(c, s.usr)
+	}
+	log.Println(userID, "userID")
+	var model dto.Task
+	model.ID = userID
+
+	body, err := io.ReadAll(c.Request().Body)
+	if err != nil || len(body) == 0 {
+		return c.NoContent(http.StatusBadRequest)
+	}
+	deleteURLs := make([]string, 0)
+	err = json.Unmarshal(body, &deleteURLs)
+	if err != nil {
+		return c.NoContent(http.StatusBadRequest)
+	}
+	for _, url := range deleteURLs {
+		model.ShortURL = hostName + "/" + url
+		s.inWorker.Do(model)
+	}
+
+	return c.NoContent(http.StatusAccepted)
 }
 
 func (s Server) PingDB(c echo.Context) error {

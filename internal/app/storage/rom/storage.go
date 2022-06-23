@@ -106,6 +106,11 @@ func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
 	return D.encoder.Encode(&D.DataFile)
 }
 
+func (D *DB) DelBatchShortURLs(task []dto.Task) error {
+	log.Println(task)
+	return nil
+}
+
 func (D *DB) Ping() error {
 	return nil
 }

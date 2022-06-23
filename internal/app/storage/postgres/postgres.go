@@ -7,26 +7,13 @@ import (
 	"github.com/cyril-jump/shortener/internal/app/utils/errs"
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"log"
+	"sync"
 )
 
 type DB struct {
+	mu  sync.Mutex
 	db  *sql.DB
 	ctx context.Context
-}
-
-func (D *DB) GetBaseURL(shortURL string) (string, error) {
-	var baseURL string
-	selectStmt, err := D.db.Prepare("SELECT base_url FROM urls WHERE short_url=$1;")
-	if err != nil {
-		return "", err
-	}
-	defer selectStmt.Close()
-
-	if err = selectStmt.QueryRow(shortURL).Scan(&baseURL); err != nil {
-		return "", err
-	}
-	return baseURL, nil
-
 }
 
 func New(ctx context.Context, psqlConn string) *DB {
@@ -51,14 +38,41 @@ func New(ctx context.Context, psqlConn string) *DB {
 	}
 }
 
+func (D *DB) GetBaseURL(shortURL string) (string, error) {
+	D.mu.Lock()
+	var baseURL string
+	countURL := 0
+	selectStmt, err := D.db.Prepare("SELECT base_url, count_url FROM urls WHERE short_url=$1;")
+	if err != nil {
+		return "", err
+	}
+	defer func() {
+		selectStmt.Close()
+		D.mu.Unlock()
+	}()
+
+	if err = selectStmt.QueryRow(shortURL).Scan(&baseURL, &countURL); err != nil {
+		return "", err
+	}
+	if countURL == 0 {
+		return "", errs.ErrWasDeleted
+	}
+	return baseURL, nil
+
+}
+
 func (D *DB) GetAllURLsByUserID(userID string) ([]dto.ModelURL, error) {
+	D.mu.Lock()
 	var modelURL []dto.ModelURL
 	var model dto.ModelURL
-	selectStmt, err := D.db.Prepare("SELECT short_url, base_url FROM users_url RIGHT JOIN urls u on users_url.url_id=u.id WHERE user_id=$1;")
+	selectStmt, err := D.db.Prepare("SELECT short_url, base_url FROM users_url RIGHT JOIN urls u on users_url.url_id=u.id WHERE user_id=$1 AND  count_url > 0;")
 	if err != nil {
 		return nil, err
 	}
-	defer selectStmt.Close()
+	defer func() {
+		selectStmt.Close()
+		D.mu.Unlock()
+	}()
 
 	row, err := selectStmt.Query(userID)
 	if err != nil {
@@ -82,43 +96,99 @@ func (D *DB) GetAllURLsByUserID(userID string) ([]dto.ModelURL, error) {
 }
 
 func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
-	var id int
-	var userURLID int
+	D.mu.Lock()
+	var id, userURLID int
 
-	insertStmt1, err := D.db.Prepare("INSERT INTO urls (base_url, short_url) VALUES ($1, $2) RETURNING id")
+	insertStmt1, err := D.db.Prepare("INSERT INTO urls (base_url, short_url) VALUES ($1, $2) RETURNING (id)")
 	if err != nil {
 		return err
 	}
-	defer insertStmt1.Close()
 
-	insertStmt2, err := D.db.Prepare("INSERT INTO users_url (user_id, url_id) VALUES ($1, $2);")
+	insertStmt2, err := D.db.Prepare("INSERT INTO users_url (user_id, url_id)  VALUES ($1, $2);")
 	if err != nil {
 		return err
 	}
-	defer insertStmt2.Close()
 
-	selectStmt, err := D.db.Prepare("SELECT id FROM urls WHERE base_url = $1;")
+	selectStmt1, err := D.db.Prepare("SELECT id FROM urls WHERE base_url = $1;")
 	if err != nil {
 		return err
 	}
-	defer selectStmt.Close()
+
+	updateStmt1, err := D.db.Prepare("UPDATE urls SET count_url = count_url + 1  WHERE base_url = $1;")
+	if err != nil {
+		return err
+	}
+
+	tx, err := D.db.BeginTx(D.ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		insertStmt1.Close()
+		insertStmt2.Close()
+		selectStmt1.Close()
+		updateStmt1.Close()
+		tx.Rollback()
+		D.mu.Unlock()
+	}()
 
 	insertStmt1.QueryRow(baseURL, shortURL).Scan(&id)
 	if id != 0 {
-		_, err = insertStmt2.Exec(userID, id)
+		_, err = tx.StmtContext(D.ctx, insertStmt2).ExecContext(D.ctx, userID, id)
 		if err != nil {
-			log.Println(errs.ErrAlreadyExists)
-			return errs.ErrAlreadyExists
+			return err
 		}
 	} else {
-		selectStmt.QueryRow(baseURL).Scan(&userURLID)
-		_, err := insertStmt2.Exec(userID, userURLID)
+		selectStmt1.QueryRow(baseURL).Scan(&userURLID)
+		_, err = tx.StmtContext(D.ctx, insertStmt2).ExecContext(D.ctx, userID, userURLID)
 		if err != nil {
 			return errs.ErrAlreadyExists
 		}
+	}
+	_, err = tx.StmtContext(D.ctx, updateStmt1).ExecContext(D.ctx, baseURL)
+	if err != nil {
+		return err
+	}
+	tx.Commit()
+	return nil
+}
 
+func (D *DB) DelBatchShortURLs(tasks []dto.Task) error {
+	D.mu.Lock()
+	id := 0
+	updateStmt2, err := D.db.Prepare("UPDATE users_url SET is_deleted = true WHERE user_id = $1 AND url_id = $2")
+	if err != nil {
+		return err
+	}
+	updateStmt1, err := D.db.Prepare("UPDATE urls SET count_url = count_url - 1  WHERE short_url = $1 RETURNING id;")
+	if err != nil {
+		return err
+	}
+	tx, err := D.db.BeginTx(D.ctx, nil)
+	if err != nil {
+		return err
 	}
 
+	defer func() {
+		updateStmt1.Close()
+		updateStmt2.Close()
+		D.mu.Unlock()
+		tx.Rollback()
+	}()
+
+	for _, t := range tasks {
+		_ = tx.StmtContext(D.ctx, updateStmt1).QueryRowContext(D.ctx, t.ShortURL).Scan(&id)
+		if err != nil {
+			return err
+		}
+
+		_, err = tx.StmtContext(D.ctx, updateStmt2).ExecContext(D.ctx, t.ID, id)
+		if err != nil {
+			return err
+		}
+		id = 0
+	}
+	tx.Commit()
 	return nil
 }
 
@@ -134,11 +204,13 @@ var schema = `
 	CREATE TABLE IF NOT EXISTS urls (
 		id serial primary key,
 		base_url text not null unique,
-		short_url text not null 
+		short_url text not null,
+	    count_url integer not null DEFAULT 0
 	);
 	CREATE TABLE IF NOT EXISTS users_url(
 	  user_id text not null,
 	  url_id int not null references urls(id),
+	  is_deleted boolean not null DEFAULT false, 
 	  CONSTRAINT unique_url UNIQUE (user_id, url_id)
 	);
 	`

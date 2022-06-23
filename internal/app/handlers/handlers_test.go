@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/cyril-jump/shortener/internal/app/config"
 	"github.com/cyril-jump/shortener/internal/app/middlewares"
+	"github.com/cyril-jump/shortener/internal/app/storage"
 	"github.com/cyril-jump/shortener/internal/app/storage/ram"
 	"github.com/cyril-jump/shortener/internal/app/storage/users"
 	"github.com/go-resty/resty/v2"
@@ -27,9 +28,10 @@ type (
 
 type Suite struct {
 	suite.Suite
-	db      *ram.DB
-	cfg     *config.Config
-	usr     *users.DBUsers
+	db      storage.DB
+	cfg     storage.Cfg
+	usr     storage.Users
+	wp      storage.InWorker
 	e       *echo.Echo
 	router  *echo.Router
 	testSrv *httptest.Server
@@ -51,7 +53,7 @@ func (suite *Suite) SetupTest() {
 	suite.router = echo.NewRouter(suite.e)
 	suite.testSrv = httptest.NewServer(suite.e)
 	suite.mw = middlewares.New(suite.usr)
-	suite.srv = New(suite.db, suite.cfg, suite.usr)
+	suite.srv = New(suite.db, suite.cfg, suite.usr, suite.wp)
 
 }
 
