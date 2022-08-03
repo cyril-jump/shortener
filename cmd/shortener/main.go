@@ -2,7 +2,18 @@ package main
 
 import (
 	"context"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"runtime"
+	"sync"
+	"syscall"
+
 	"github.com/caarlos0/env/v6"
+	flag "github.com/spf13/pflag"
+	"golang.org/x/sync/errgroup"
+
 	"github.com/cyril-jump/shortener/internal/app/config"
 	"github.com/cyril-jump/shortener/internal/app/dto"
 	"github.com/cyril-jump/shortener/internal/app/server"
@@ -13,15 +24,6 @@ import (
 	"github.com/cyril-jump/shortener/internal/app/storage/users"
 	"github.com/cyril-jump/shortener/internal/app/utils"
 	"github.com/cyril-jump/shortener/internal/app/workerpool"
-	flag "github.com/spf13/pflag"
-	"golang.org/x/sync/errgroup"
-	"log"
-	"net/http"
-	"os"
-	"os/signal"
-	"runtime"
-	"sync"
-	"syscall"
 )
 
 func init() {

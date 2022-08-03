@@ -3,9 +3,8 @@ package users
 import (
 	"context"
 	"fmt"
-	"github.com/cyril-jump/shortener/internal/app/utils"
+
 	"github.com/golang-jwt/jwt"
-	"log"
 )
 
 type DBUsers struct {
@@ -14,10 +13,8 @@ type DBUsers struct {
 }
 
 func New(ctx context.Context) *DBUsers {
-	key, err := utils.GenerateRandom(16)
-	if err != nil {
-		log.Printf("error: %v\n", err)
-	}
+	key := []byte("secret")
+
 	return &DBUsers{
 		randNum: key,
 		ctx:     ctx,

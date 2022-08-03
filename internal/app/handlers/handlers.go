@@ -3,15 +3,17 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"io"
+	"log"
+	"net/http"
+
+	"github.com/labstack/echo/v4"
+
 	"github.com/cyril-jump/shortener/internal/app/config"
 	"github.com/cyril-jump/shortener/internal/app/dto"
 	"github.com/cyril-jump/shortener/internal/app/storage"
 	"github.com/cyril-jump/shortener/internal/app/utils"
 	"github.com/cyril-jump/shortener/internal/app/utils/errs"
-	"github.com/labstack/echo/v4"
-	"io"
-	"log"
-	"net/http"
 )
 
 type Server struct {
@@ -33,10 +35,10 @@ func New(db storage.DB, config storage.Cfg, usr storage.Users, inWorker storage.
 // Handlers
 
 func (s Server) PostURL(c echo.Context) error {
-	var (
-		shortURL, baseURL string
-	)
-	var userID string
+
+	shortURL := ""
+	baseURL := ""
+	userID := ""
 
 	if id := c.Request().Context().Value(config.CookieKey); id != nil {
 		userID = id.(string)
@@ -69,9 +71,9 @@ func (s Server) PostURL(c echo.Context) error {
 }
 
 func (s Server) GetURL(c echo.Context) error {
-	var (
-		shortURL, baseURL string
-	)
+
+	shortURL := ""
+	baseURL := ""
 	var err error
 
 	if c.Param("urlID") == "" {
@@ -95,10 +97,10 @@ func (s Server) GetURL(c echo.Context) error {
 }
 
 func (s Server) PostURLJSON(c echo.Context) error {
-	var request dto.ModelRequestURL
-	var response dto.ModelResponseURL
+	request := dto.ModelRequestURL{}
+	response := dto.ModelResponseURL{}
 
-	var userID string
+	userID := ""
 
 	if id := c.Request().Context().Value(config.CookieKey); id != nil {
 		userID = id.(string)
@@ -138,10 +140,9 @@ func (s Server) PostURLJSON(c echo.Context) error {
 
 func (s Server) GetURLsByUserID(c echo.Context) error {
 
-	var URLs []dto.ModelURL
+	URLs := make([]dto.ModelURL, 20000)
 	var err error
-
-	var userID string
+	userID := ""
 
 	if id := c.Request().Context().Value(config.CookieKey); id != nil {
 		userID = id.(string)
@@ -159,11 +160,10 @@ func (s Server) GetURLsByUserID(c echo.Context) error {
 }
 
 func (s Server) PostURLsBATCH(c echo.Context) error {
-	var request []dto.ModelURLBatchRequest
-	var response []dto.ModelURLBatchResponse
-	var model dto.ModelURLBatchResponse
-
-	var userID string
+	request := make([]dto.ModelURLBatchRequest, 0, 1)
+	response := make([]dto.ModelURLBatchResponse, 0, 1)
+	model := dto.ModelURLBatchResponse{}
+	userID := ""
 
 	if id := c.Request().Context().Value(config.CookieKey); id != nil {
 		userID = id.(string)
@@ -199,7 +199,7 @@ func (s Server) PostURLsBATCH(c echo.Context) error {
 }
 
 func (s Server) DelURLsBATCH(c echo.Context) error {
-	var userID string
+	userID := ""
 	hostName, err := s.cfg.Get("base_url_str")
 	utils.CheckErr(err, "base_url_str")
 
@@ -211,14 +211,14 @@ func (s Server) DelURLsBATCH(c echo.Context) error {
 		userID = utils.CreateCookie(c, s.usr)
 	}
 	log.Println(userID, "userID")
-	var model dto.Task
+	model := dto.Task{}
 	model.ID = userID
 
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil || len(body) == 0 {
 		return c.NoContent(http.StatusBadRequest)
 	}
-	deleteURLs := make([]string, 0)
+	deleteURLs := make([]string, 20000)
 	err = json.Unmarshal(body, &deleteURLs)
 	if err != nil {
 		return c.NoContent(http.StatusBadRequest)

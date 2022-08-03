@@ -3,20 +3,22 @@ package handlers
 import (
 	"context"
 	"encoding/json"
-	"github.com/cyril-jump/shortener/internal/app/config"
-	"github.com/cyril-jump/shortener/internal/app/middlewares"
-	"github.com/cyril-jump/shortener/internal/app/storage"
-	"github.com/cyril-jump/shortener/internal/app/storage/ram"
-	"github.com/cyril-jump/shortener/internal/app/storage/users"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
 	"github.com/go-resty/resty/v2"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"net/http"
-	"net/http/httptest"
-	"strings"
-	"testing"
+
+	"github.com/cyril-jump/shortener/internal/app/config"
+	"github.com/cyril-jump/shortener/internal/app/middlewares"
+	"github.com/cyril-jump/shortener/internal/app/storage"
+	"github.com/cyril-jump/shortener/internal/app/storage/ram"
+	"github.com/cyril-jump/shortener/internal/app/storage/users"
 )
 
 type (

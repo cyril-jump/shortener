@@ -2,11 +2,12 @@ package workerpool
 
 import (
 	"context"
-	"github.com/cyril-jump/shortener/internal/app/dto"
-	"github.com/cyril-jump/shortener/internal/app/storage"
 	"log"
 	"sync"
 	"time"
+
+	"github.com/cyril-jump/shortener/internal/app/dto"
+	"github.com/cyril-jump/shortener/internal/app/storage"
 )
 
 type InputWorker struct {
@@ -79,7 +80,7 @@ func (w *InputWorker) Loop() error {
 }
 
 func (w *OutputWorker) Do() error {
-	models := make([]dto.Task, 0, 20)
+	models := make([]dto.Task, 0, 200)
 	for {
 		select {
 		case <-w.ctx.Done():

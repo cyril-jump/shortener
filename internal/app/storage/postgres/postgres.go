@@ -3,11 +3,13 @@ package postgres
 import (
 	"context"
 	"database/sql"
-	"github.com/cyril-jump/shortener/internal/app/dto"
-	"github.com/cyril-jump/shortener/internal/app/utils/errs"
-	_ "github.com/jackc/pgx/v4/stdlib"
 	"log"
 	"sync"
+
+	_ "github.com/jackc/pgx/v4/stdlib"
+
+	"github.com/cyril-jump/shortener/internal/app/dto"
+	"github.com/cyril-jump/shortener/internal/app/utils/errs"
 )
 
 type DB struct {
@@ -63,8 +65,8 @@ func (D *DB) GetBaseURL(shortURL string) (string, error) {
 
 func (D *DB) GetAllURLsByUserID(userID string) ([]dto.ModelURL, error) {
 	D.mu.Lock()
-	var modelURL []dto.ModelURL
-	var model dto.ModelURL
+	modelURL := make([]dto.ModelURL, 20000)
+	model := dto.ModelURL{}
 	selectStmt, err := D.db.Prepare("SELECT short_url, base_url FROM users_url RIGHT JOIN urls u on users_url.url_id=u.id WHERE user_id=$1 AND  count_url > 0;")
 	if err != nil {
 		return nil, err
