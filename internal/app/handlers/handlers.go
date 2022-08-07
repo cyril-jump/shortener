@@ -16,6 +16,7 @@ import (
 	"github.com/cyril-jump/shortener/internal/app/utils/errs"
 )
 
+//Server struct
 type Server struct {
 	db       storage.DB
 	cfg      storage.Cfg
@@ -23,6 +24,7 @@ type Server struct {
 	inWorker storage.InWorker
 }
 
+//New Server constructor
 func New(db storage.DB, config storage.Cfg, usr storage.Users, inWorker storage.InWorker) *Server {
 	return &Server{
 		db:       db,
@@ -34,6 +36,7 @@ func New(db storage.DB, config storage.Cfg, usr storage.Users, inWorker storage.
 
 // Handlers
 
+//PostURL  Accepts a URL string in the request body for shortening
 func (s Server) PostURL(c echo.Context) error {
 
 	shortURL := ""
@@ -70,6 +73,7 @@ func (s Server) PostURL(c echo.Context) error {
 	return c.String(http.StatusCreated, shortURL)
 }
 
+//GetURL Accepts the identifier of the short URL as a URL parameter and returns a response
 func (s Server) GetURL(c echo.Context) error {
 
 	shortURL := ""
@@ -96,6 +100,7 @@ func (s Server) GetURL(c echo.Context) error {
 	return c.NoContent(http.StatusTemporaryRedirect)
 }
 
+//PostURLJSON Accepting a JSON object in the request body and returning a JSON objec in response
 func (s Server) PostURLJSON(c echo.Context) error {
 	request := dto.ModelRequestURL{}
 	response := dto.ModelResponseURL{}
@@ -138,9 +143,10 @@ func (s Server) PostURLJSON(c echo.Context) error {
 	return c.JSON(http.StatusCreated, response)
 }
 
+//GetURLsByUserID Return to the user all ever saved by him
 func (s Server) GetURLsByUserID(c echo.Context) error {
 
-	URLs := make([]dto.ModelURL, 20000)
+	urls := make([]dto.ModelURL, 0, 20000)
 	var err error
 	userID := ""
 
@@ -152,13 +158,15 @@ func (s Server) GetURLsByUserID(c echo.Context) error {
 		userID = utils.CreateCookie(c, s.usr)
 	}
 
-	if URLs, err = s.db.GetAllURLsByUserID(userID); err != nil || URLs == nil {
+	urls, err = s.db.GetAllURLsByUserID(userID)
+	if err != nil || urls == nil {
 		return c.NoContent(http.StatusNoContent)
 	}
 
-	return c.JSON(http.StatusOK, URLs)
+	return c.JSON(http.StatusOK, urls)
 }
 
+//PostURLsBATCH Accepting in the request body a set of URLs for shortening in the format
 func (s Server) PostURLsBATCH(c echo.Context) error {
 	request := make([]dto.ModelURLBatchRequest, 0, 20000)
 	response := make([]dto.ModelURLBatchResponse, 0, 20000)
@@ -198,6 +206,7 @@ func (s Server) PostURLsBATCH(c echo.Context) error {
 	return c.JSON(http.StatusCreated, response)
 }
 
+//DelURLsBATCH Accepts a list of abbreviated URL IDs to delete
 func (s Server) DelURLsBATCH(c echo.Context) error {
 	userID := ""
 	hostName, err := s.cfg.Get("base_url_str")
@@ -231,6 +240,7 @@ func (s Server) DelURLsBATCH(c echo.Context) error {
 	return c.NoContent(http.StatusAccepted)
 }
 
+//PingDB Checks the connection to the database
 func (s Server) PingDB(c echo.Context) error {
 
 	if err := s.db.Ping(); err != nil {

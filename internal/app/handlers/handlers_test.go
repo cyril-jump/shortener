@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/cyril-jump/shortener/internal/app/config"
+	"github.com/cyril-jump/shortener/internal/app/dto"
 	"github.com/cyril-jump/shortener/internal/app/middlewares"
 	"github.com/cyril-jump/shortener/internal/app/storage"
 	"github.com/cyril-jump/shortener/internal/app/storage/ram"
@@ -252,6 +253,128 @@ func (suite *Suite) TestServer_GetURLsByUserID() {
 				t.Fatalf("Could not perform GET by userID request")
 			}
 			assert.Equal(t, tt.want.code, res.StatusCode())
+		})
+	}
+	defer suite.testSrv.Close()
+}
+
+func (suite *Suite) TestServer_PostURLsBATCH() {
+
+	userID := uuid.New().String()
+	token, _ := suite.usr.CreateToken(userID)
+
+	suite.e.Use(suite.mw.SessionWithCookies)
+	suite.e.POST("/api/shorten/batch", suite.srv.PostURLsBATCH)
+
+	tests := []struct {
+		numTest  uint
+		name     string
+		token    string
+		URLs     []dto.ModelURLBatchRequest
+		wantCode int
+	}{
+		{
+			numTest: 1,
+			name:    "success",
+			token:   token,
+			URLs: []dto.ModelURLBatchRequest{
+				{BaseURL: "https://www.atlanta.io", CorID: userID},
+				{BaseURL: "https://www.fifefox.com", CorID: userID},
+				{BaseURL: "https://www.gameover.com", CorID: userID},
+			},
+			wantCode: http.StatusCreated,
+		},
+		{
+			numTest:  2,
+			name:     "failed",
+			token:    token,
+			URLs:     nil,
+			wantCode: http.StatusBadRequest,
+		},
+	}
+
+	for _, tt := range tests {
+		suite.T().Run(tt.name, func(t *testing.T) {
+			var res *resty.Response
+			client := resty.New()
+
+			if tt.numTest == 1 {
+				reqBody, _ := json.Marshal(tt.URLs)
+				payload := strings.NewReader(string(reqBody))
+				res, _ = client.R().SetBody(payload).Post(suite.testSrv.URL + "/api/shorten/batch")
+			} else {
+				res, _ = client.R().Post(suite.testSrv.URL + "/api/shorten/batch")
+			}
+			assert.Equal(t, tt.wantCode, res.StatusCode())
+		})
+	}
+	defer suite.testSrv.Close()
+}
+
+func (suite *Suite) TestServer_DelURLsBATCH() {
+
+	userID := uuid.New().String()
+	token, _ := suite.usr.CreateToken(userID)
+
+	suite.e.Use(suite.mw.SessionWithCookies)
+	suite.e.DELETE("/api/user/urls", suite.srv.DelURLsBATCH)
+
+	tests := []struct {
+		name     string
+		token    string
+		URLs     []string
+		wantCode int
+	}{
+		{
+			name:     "success",
+			token:    token,
+			URLs:     []string{},
+			wantCode: http.StatusAccepted,
+		},
+		{
+			name:     "failed",
+			token:    token,
+			URLs:     nil,
+			wantCode: http.StatusAccepted,
+		},
+	}
+
+	for _, tt := range tests {
+		suite.T().Run(tt.name, func(t *testing.T) {
+			client := resty.New()
+
+			reqBody, _ := json.Marshal(tt.URLs)
+			payload := strings.NewReader(string(reqBody))
+
+			res, _ := client.R().SetBody(payload).Delete(suite.testSrv.URL + "/api/user/urls")
+
+			assert.Equal(t, tt.wantCode, res.StatusCode())
+		})
+	}
+	defer suite.testSrv.Close()
+}
+
+func (suite *Suite) TestServer_PingDB() {
+
+	suite.e.GET("/ping", suite.srv.PingDB)
+
+	tests := []struct {
+		name     string
+		wantCode int
+	}{
+		{
+			name:     "success",
+			wantCode: http.StatusOK,
+		},
+	}
+
+	for _, tt := range tests {
+		suite.T().Run(tt.name, func(t *testing.T) {
+			client := resty.New()
+
+			res, _ := client.R().Get(suite.testSrv.URL + "/ping")
+
+			assert.Equal(t, tt.wantCode, res.StatusCode())
 		})
 	}
 	defer suite.testSrv.Close()

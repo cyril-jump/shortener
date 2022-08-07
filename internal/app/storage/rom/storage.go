@@ -11,8 +11,7 @@ import (
 	"github.com/cyril-jump/shortener/internal/app/utils/errs"
 )
 
-// DB
-
+// DB Rom struct
 type DB struct {
 	file      *os.File
 	DataFile  ModelFile `json:"data_file"`
@@ -22,14 +21,14 @@ type DB struct {
 	ctx       context.Context
 }
 
+//ModelFile File model
 type ModelFile struct {
 	UserID   string `json:"user_id"`
 	ShortURL string `json:"short_url"`
 	BaseURL  string `json:"base_url"`
 }
 
-//constructor
-
+// NewDB  Rom constructor
 func NewDB(ctx context.Context, filepath string) (*DB, error) {
 
 	file, err := os.OpenFile(filepath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0777)
@@ -66,6 +65,7 @@ func NewDB(ctx context.Context, filepath string) (*DB, error) {
 	}, nil
 }
 
+//GetBaseURL Get base URL from file
 func (D *DB) GetBaseURL(shortURL string) (string, error) {
 	if v, ok := D.GlobalBD[shortURL]; ok {
 		return v, nil
@@ -73,6 +73,7 @@ func (D *DB) GetBaseURL(shortURL string) (string, error) {
 	return "", errs.ErrNoContent
 }
 
+//GetAllURLsByUserID Get all URLs by UserID from file
 func (D *DB) GetAllURLsByUserID(userID string) ([]dto.ModelURL, error) {
 	if _, ok := D.DataCache[userID]; ok {
 		return D.DataCache[userID], nil
@@ -80,6 +81,7 @@ func (D *DB) GetAllURLsByUserID(userID string) ([]dto.ModelURL, error) {
 	return nil, errs.ErrNoContent
 }
 
+//SetShortURL Set short URL in file
 func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
 
 	D.DataFile.UserID = userID

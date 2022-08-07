@@ -12,12 +12,14 @@ import (
 	"github.com/cyril-jump/shortener/internal/app/utils/errs"
 )
 
+//DB struct
 type DB struct {
 	mu  sync.Mutex
 	db  *sql.DB
 	ctx context.Context
 }
 
+//New DB constructor
 func New(ctx context.Context, psqlConn string) *DB {
 	db, err := sql.Open("pgx", psqlConn)
 	if err != nil {
@@ -40,6 +42,7 @@ func New(ctx context.Context, psqlConn string) *DB {
 	}
 }
 
+//GetBaseURL Get base URL from DB
 func (D *DB) GetBaseURL(shortURL string) (string, error) {
 	D.mu.Lock()
 	var baseURL string
@@ -63,6 +66,7 @@ func (D *DB) GetBaseURL(shortURL string) (string, error) {
 
 }
 
+//GetAllURLsByUserID Get all URLs by UserID from DB
 func (D *DB) GetAllURLsByUserID(userID string) ([]dto.ModelURL, error) {
 	D.mu.Lock()
 	modelURL := make([]dto.ModelURL, 20000)
@@ -97,6 +101,7 @@ func (D *DB) GetAllURLsByUserID(userID string) ([]dto.ModelURL, error) {
 	return modelURL, nil
 }
 
+//SetShortURL Set short URL in DB
 func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
 	D.mu.Lock()
 	var id, userURLID int
@@ -155,6 +160,7 @@ func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
 	return nil
 }
 
+//DelBatchShortURLs Delete batch short URLs in DB
 func (D *DB) DelBatchShortURLs(tasks []dto.Task) error {
 	D.mu.Lock()
 	id := 0
@@ -194,14 +200,17 @@ func (D *DB) DelBatchShortURLs(tasks []dto.Task) error {
 	return nil
 }
 
+//Ping Ping DB
 func (D *DB) Ping() error {
 	return D.db.Ping()
 }
 
+//Close Close DB connection
 func (D *DB) Close() error {
 	return D.db.Close()
 }
 
+//schema DB schema
 var schema = `
 	CREATE TABLE IF NOT EXISTS urls (
 		id serial primary key,
