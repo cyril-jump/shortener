@@ -146,7 +146,7 @@ func (s Server) PostURLJSON(c echo.Context) error {
 //GetURLsByUserID Return to the user all ever saved by him
 func (s Server) GetURLsByUserID(c echo.Context) error {
 
-	urls := make([]dto.ModelURL, 0, 20000)
+	var urls []dto.ModelURL
 	var err error
 	userID := ""
 
