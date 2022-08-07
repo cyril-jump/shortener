@@ -160,8 +160,8 @@ func (s Server) GetURLsByUserID(c echo.Context) error {
 }
 
 func (s Server) PostURLsBATCH(c echo.Context) error {
-	request := make([]dto.ModelURLBatchRequest, 0, 1)
-	response := make([]dto.ModelURLBatchResponse, 0, 1)
+	request := make([]dto.ModelURLBatchRequest, 0, 20000)
+	response := make([]dto.ModelURLBatchResponse, 0, 20000)
 	model := dto.ModelURLBatchResponse{}
 	userID := ""
 

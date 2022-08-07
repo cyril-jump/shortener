@@ -2,10 +2,12 @@ package middlewares
 
 import (
 	"context"
+
+	"github.com/labstack/echo/v4"
+
 	"github.com/cyril-jump/shortener/internal/app/config"
 	"github.com/cyril-jump/shortener/internal/app/storage"
 	"github.com/cyril-jump/shortener/internal/app/utils"
-	"github.com/labstack/echo/v4"
 )
 
 type MW struct {

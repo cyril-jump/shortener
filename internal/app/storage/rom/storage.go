@@ -4,10 +4,11 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
-	"github.com/cyril-jump/shortener/internal/app/dto"
-	"github.com/cyril-jump/shortener/internal/app/utils/errs"
 	"log"
 	"os"
+
+	"github.com/cyril-jump/shortener/internal/app/dto"
+	"github.com/cyril-jump/shortener/internal/app/utils/errs"
 )
 
 // DB

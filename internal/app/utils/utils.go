@@ -2,29 +2,20 @@ package utils
 
 import (
 	"crypto/md5"
-	"crypto/rand"
 	"fmt"
-	"github.com/cyril-jump/shortener/internal/app/config"
-	"github.com/cyril-jump/shortener/internal/app/storage"
-	"github.com/google/uuid"
-	"github.com/labstack/echo/v4"
 	"log"
 	"net/http"
+
+	"github.com/google/uuid"
+	"github.com/labstack/echo/v4"
+
+	"github.com/cyril-jump/shortener/internal/app/config"
+	"github.com/cyril-jump/shortener/internal/app/storage"
 )
 
 func Hash(url []byte, hostName string) string {
 	hash := md5.Sum(url)
 	return fmt.Sprintf("%s%s%x", hostName, "/", hash)
-}
-
-func GenerateRandom(size int) ([]byte, error) {
-	b := make([]byte, size)
-	_, err := rand.Read(b)
-	if err != nil {
-		return nil, err
-	}
-
-	return b, nil
 }
 
 func CheckErr(err error, text string) {

@@ -2,9 +2,10 @@ package ram
 
 import (
 	"context"
+	"log"
+
 	"github.com/cyril-jump/shortener/internal/app/dto"
 	"github.com/cyril-jump/shortener/internal/app/utils/errs"
-	"log"
 )
 
 // DB
