@@ -3,19 +3,23 @@ package postgres
 import (
 	"context"
 	"database/sql"
-	"github.com/cyril-jump/shortener/internal/app/dto"
-	"github.com/cyril-jump/shortener/internal/app/utils/errs"
-	_ "github.com/jackc/pgx/v4/stdlib"
 	"log"
 	"sync"
+
+	_ "github.com/jackc/pgx/v4/stdlib"
+
+	"github.com/cyril-jump/shortener/internal/app/dto"
+	"github.com/cyril-jump/shortener/internal/app/utils/errs"
 )
 
+//DB struct
 type DB struct {
 	mu  sync.Mutex
 	db  *sql.DB
 	ctx context.Context
 }
 
+//New DB constructor
 func New(ctx context.Context, psqlConn string) *DB {
 	db, err := sql.Open("pgx", psqlConn)
 	if err != nil {
@@ -38,6 +42,7 @@ func New(ctx context.Context, psqlConn string) *DB {
 	}
 }
 
+//GetBaseURL Get base URL from DB
 func (D *DB) GetBaseURL(shortURL string) (string, error) {
 	D.mu.Lock()
 	var baseURL string
@@ -61,10 +66,11 @@ func (D *DB) GetBaseURL(shortURL string) (string, error) {
 
 }
 
+//GetAllURLsByUserID Get all URLs by UserID from DB
 func (D *DB) GetAllURLsByUserID(userID string) ([]dto.ModelURL, error) {
 	D.mu.Lock()
-	var modelURL []dto.ModelURL
-	var model dto.ModelURL
+	modelURL := make([]dto.ModelURL, 20000)
+	model := dto.ModelURL{}
 	selectStmt, err := D.db.Prepare("SELECT short_url, base_url FROM users_url RIGHT JOIN urls u on users_url.url_id=u.id WHERE user_id=$1 AND  count_url > 0;")
 	if err != nil {
 		return nil, err
@@ -95,6 +101,7 @@ func (D *DB) GetAllURLsByUserID(userID string) ([]dto.ModelURL, error) {
 	return modelURL, nil
 }
 
+//SetShortURL Set short URL in DB
 func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
 	D.mu.Lock()
 	var id, userURLID int
@@ -153,6 +160,7 @@ func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
 	return nil
 }
 
+//DelBatchShortURLs Delete batch short URLs in DB
 func (D *DB) DelBatchShortURLs(tasks []dto.Task) error {
 	D.mu.Lock()
 	id := 0
@@ -192,14 +200,17 @@ func (D *DB) DelBatchShortURLs(tasks []dto.Task) error {
 	return nil
 }
 
+//Ping Ping DB
 func (D *DB) Ping() error {
 	return D.db.Ping()
 }
 
+//Close Close DB connection
 func (D *DB) Close() error {
 	return D.db.Close()
 }
 
+//schema DB schema
 var schema = `
 	CREATE TABLE IF NOT EXISTS urls (
 		id serial primary key,

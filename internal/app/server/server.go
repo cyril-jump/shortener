@@ -1,11 +1,14 @@
 package server
 
 import (
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
+
+	"github.com/labstack/echo-contrib/pprof"
+
 	"github.com/cyril-jump/shortener/internal/app/handlers"
 	"github.com/cyril-jump/shortener/internal/app/middlewares"
 	"github.com/cyril-jump/shortener/internal/app/storage"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 )
 
 func InitSrv(db storage.DB, cfg storage.Cfg, usr storage.Users, inWorker storage.InWorker) *echo.Echo {
@@ -15,6 +18,7 @@ func InitSrv(db storage.DB, cfg storage.Cfg, usr storage.Users, inWorker storage
 
 	//new Echo instance
 	e := echo.New()
+	pprof.Register(e)
 
 	// Middleware
 	mw := middlewares.New(usr)
@@ -33,5 +37,4 @@ func InitSrv(db storage.DB, cfg storage.Cfg, usr storage.Users, inWorker storage
 	e.DELETE("/api/user/urls", srv.DelURLsBATCH)
 
 	return e
-
 }
