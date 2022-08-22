@@ -27,13 +27,15 @@ import (
 )
 
 func init() {
-	//evn vars
+	// it outputs a message to stdout
+	printAssemblyData()
+	// evn vars
 	err := env.Parse(&config.EnvVar)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	//flags
+	// flags
 	flag.StringVarP(&config.Flags.ServerAddress, "address", "a", config.EnvVar.ServerAddress, "server address")
 	flag.StringVarP(&config.Flags.BaseURL, "base", "b", config.EnvVar.BaseURL, "base url")
 	flag.StringVarP(&config.Flags.FileStoragePath, "file", "f", config.EnvVar.FileStoragePath, "file storage path")
@@ -43,7 +45,6 @@ func init() {
 }
 
 func main() {
-
 	var err error
 	ctx, cancel := context.WithCancel(context.Background())
 	signalChan := make(chan os.Signal, 1)

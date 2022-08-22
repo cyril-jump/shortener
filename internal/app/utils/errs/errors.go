@@ -2,7 +2,7 @@ package errs
 
 import "errors"
 
-//Internal errors
+// Internal errors
 var (
 	ErrNotFound      = errors.New("not found")
 	ErrAlreadyExists = errors.New("already exists")

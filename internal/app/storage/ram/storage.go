@@ -25,7 +25,7 @@ func NewDB(ctx context.Context) *DB {
 	}
 }
 
-//GetBaseURL Get base URL from ram memory
+// GetBaseURL Get base URL from ram memory
 func (D *DB) GetBaseURL(shortURL string) (string, error) {
 	if v, ok := D.GlobalBD[shortURL]; ok {
 		return v, nil
@@ -33,7 +33,7 @@ func (D *DB) GetBaseURL(shortURL string) (string, error) {
 	return "", errs.ErrNoContent
 }
 
-//GetAllURLsByUserID Get all URLs by UserID from ram memory
+// GetAllURLsByUserID Get all URLs by UserID from ram memory
 func (D *DB) GetAllURLsByUserID(userID string) ([]dto.ModelURL, error) {
 	if _, ok := D.DataCache[userID]; ok {
 		return D.DataCache[userID], nil
@@ -41,7 +41,7 @@ func (D *DB) GetAllURLsByUserID(userID string) ([]dto.ModelURL, error) {
 	return nil, errs.ErrNoContent
 }
 
-//SetShortURL Set short URL in ram memory
+// SetShortURL Set short URL in ram memory
 func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
 	modelURL := dto.ModelURL{
 		ShortURL: shortURL,

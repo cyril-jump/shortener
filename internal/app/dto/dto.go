@@ -14,23 +14,23 @@ type ModelURLBatchRequest struct {
 	BaseURL string `json:"original_url"`
 }
 
-//ModelURLBatchResponse struct
+// ModelURLBatchResponse struct
 type ModelURLBatchResponse struct {
 	CorID    string `json:"correlation_id"`
 	ShortURL string `json:"short_url"`
 }
 
-//ModelRequestURL struct
+// ModelRequestURL struct
 type ModelRequestURL struct {
 	BaseURL string `json:"url"`
 }
 
-//ModelResponseURL struct
+// ModelResponseURL struct
 type ModelResponseURL struct {
 	ShortURL string `json:"result"`
 }
 
-//Task struct
+// Task struct
 type Task struct {
 	ID       string
 	ShortURL string
