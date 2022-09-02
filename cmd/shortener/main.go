@@ -50,7 +50,7 @@ func main() {
 	var err error
 	ctx, cancel := context.WithCancel(context.Background())
 	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, syscall.SIGINT)
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	//db
 	var db storage.DB
 
