@@ -130,7 +130,7 @@ func main() {
 	enableHTTPS, err := cfg.Get("enable_https")
 	utils.CheckErr(err, "enable_https")
 
-	if enableHTTPS != "true" {
+	if enableHTTPS == "true" {
 		if err = srv.StartTLS(serverAddress, "certs/localhost.crt", "certs/localhost.key"); err != nil && err != http.ErrServerClosed {
 			srv.Logger.Fatal(err)
 		}
