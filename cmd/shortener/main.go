@@ -28,7 +28,7 @@ import (
 
 func init() {
 	// it outputs a message to stdout
-	printAssemblyData()
+	//printAssemblyData()
 	// evn vars
 	err := env.Parse(&config.EnvVar)
 	if err != nil {
@@ -40,6 +40,8 @@ func init() {
 	flag.StringVarP(&config.Flags.BaseURL, "base", "b", config.EnvVar.BaseURL, "base url")
 	flag.StringVarP(&config.Flags.FileStoragePath, "file", "f", config.EnvVar.FileStoragePath, "file storage path")
 	flag.StringVarP(&config.Flags.DatabaseDSN, "psqlConn", "d", config.EnvVar.DatabaseDSN, "database URL conn")
+	flag.BoolVarP(&config.Flags.EnableHTTPS, "secure", "s", config.EnvVar.EnableHTTPS, "secure conn")
+	flag.StringVarP(&config.Flags.ConfigJSON, "json", "c", config.EnvVar.ConfigJSON, "JSON configuration")
 	flag.Parse()
 
 }
@@ -53,7 +55,14 @@ func main() {
 	var db storage.DB
 
 	//config
-	cfg := config.NewConfig(config.Flags.ServerAddress, config.Flags.BaseURL, config.Flags.FileStoragePath, config.Flags.DatabaseDSN)
+	cfg := config.NewConfig(
+		config.Flags.ServerAddress,
+		config.Flags.BaseURL,
+		config.Flags.FileStoragePath,
+		config.Flags.DatabaseDSN,
+		config.Flags.ConfigJSON,
+		config.Flags.EnableHTTPS,
+	)
 
 	psqlConn, err := cfg.Get("database_dsn_str")
 	utils.CheckErr(err, "database_dsn_str")
@@ -118,6 +127,14 @@ func main() {
 	serverAddress, err := cfg.Get("server_address_str")
 	utils.CheckErr(err, "server_address_str")
 
+	enableHTTPS, err := cfg.Get("enable_https")
+	utils.CheckErr(err, "enable_https")
+
+	if enableHTTPS != "true" {
+		if err = srv.StartTLS(serverAddress, "certs/localhost.crt", "certs/localhost.key"); err != nil && err != http.ErrServerClosed {
+			srv.Logger.Fatal(err)
+		}
+	}
 	if err = srv.Start(serverAddress); err != nil && err != http.ErrServerClosed {
 		srv.Logger.Fatal(err)
 	}
