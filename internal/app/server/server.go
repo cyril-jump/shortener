@@ -13,10 +13,10 @@ import (
 
 func InitSrv(db storage.DB, cfg storage.Cfg, usr storage.Users, inWorker storage.InWorker) *echo.Echo {
 
-	//server
+	// server
 	srv := handlers.New(db, cfg, usr, inWorker)
 
-	//new Echo instance
+	// new Echo instance
 	e := echo.New()
 	pprof.Register(e)
 

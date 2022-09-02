@@ -21,7 +21,7 @@ type DB struct {
 	ctx       context.Context
 }
 
-//ModelFile File model
+// ModelFile File model
 type ModelFile struct {
 	UserID   string `json:"user_id"`
 	ShortURL string `json:"short_url"`
@@ -65,7 +65,7 @@ func NewDB(ctx context.Context, filepath string) (*DB, error) {
 	}, nil
 }
 
-//GetBaseURL Get base URL from file
+// GetBaseURL Get base URL from file
 func (D *DB) GetBaseURL(shortURL string) (string, error) {
 	if v, ok := D.GlobalBD[shortURL]; ok {
 		return v, nil
@@ -73,7 +73,7 @@ func (D *DB) GetBaseURL(shortURL string) (string, error) {
 	return "", errs.ErrNoContent
 }
 
-//GetAllURLsByUserID Get all URLs by UserID from file
+// GetAllURLsByUserID Get all URLs by UserID from file
 func (D *DB) GetAllURLsByUserID(userID string) ([]dto.ModelURL, error) {
 	if _, ok := D.DataCache[userID]; ok {
 		return D.DataCache[userID], nil
@@ -81,7 +81,7 @@ func (D *DB) GetAllURLsByUserID(userID string) ([]dto.ModelURL, error) {
 	return nil, errs.ErrNoContent
 }
 
-//SetShortURL Set short URL in file
+// SetShortURL Set short URL in file
 func (D *DB) SetShortURL(userID, shortURL, baseURL string) error {
 
 	D.DataFile.UserID = userID

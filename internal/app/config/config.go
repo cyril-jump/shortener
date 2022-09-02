@@ -2,7 +2,7 @@ package config
 
 import "github.com/cyril-jump/shortener/internal/app/utils/errs"
 
-//contextKey const
+// contextKey const
 type contextKey string
 
 const (
@@ -13,7 +13,7 @@ func (c contextKey) String() string {
 	return string(c)
 }
 
-//Flags struct
+// Flags struct
 var Flags struct {
 	ServerAddress   string
 	BaseURL         string
@@ -21,7 +21,7 @@ var Flags struct {
 	DatabaseDSN     string
 }
 
-//EnvVar environment vars
+// EnvVar environment vars
 var EnvVar struct {
 	ServerAddress   string `env:"SERVER_ADDRESS" envDefault:":8080"`
 	BaseURL         string `env:"BASE_URL" envDefault:"http://localhost:8080"`
@@ -29,12 +29,12 @@ var EnvVar struct {
 	DatabaseDSN     string `env:"DATABASE_DSN"`
 }
 
-//Config struct
+// Config struct
 type Config struct {
 	cfg map[string]string
 }
 
-//Get Config element by key
+// Get Config element by key
 func (c Config) Get(key string) (string, error) {
 	if _, ok := c.cfg[key]; !ok {
 		return "", errs.ErrNotFound
@@ -42,7 +42,7 @@ func (c Config) Get(key string) (string, error) {
 	return c.cfg[key], nil
 }
 
-//NewConfig config constructor
+// NewConfig config constructor
 func NewConfig(srvAddr, hostName, fileStoragePath, databaseDSN string) *Config {
 	cfg := make(map[string]string)
 	cfg["server_address_str"] = srvAddr

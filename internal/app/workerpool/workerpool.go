@@ -10,7 +10,7 @@ import (
 	"github.com/cyril-jump/shortener/internal/app/storage"
 )
 
-//InputWorker struct
+// InputWorker struct
 type InputWorker struct {
 	ch     chan dto.Task
 	done   chan struct{}
@@ -20,7 +20,7 @@ type InputWorker struct {
 	mu     *sync.Mutex
 }
 
-//OutputWorker struct
+// OutputWorker struct
 type OutputWorker struct {
 	id   int
 	ch   chan dto.Task
@@ -30,7 +30,7 @@ type OutputWorker struct {
 	mu   *sync.Mutex
 }
 
-//NewInputWorker Input worker constructor
+// NewInputWorker Input worker constructor
 func NewInputWorker(ch chan dto.Task, done chan struct{}, ctx context.Context, mu *sync.Mutex) *InputWorker {
 	index := 0
 	ticker := time.NewTicker(10 * time.Second)
@@ -44,7 +44,7 @@ func NewInputWorker(ch chan dto.Task, done chan struct{}, ctx context.Context, m
 	}
 }
 
-//NewOutputWorker Output worker constructor
+// NewOutputWorker Output worker constructor
 func NewOutputWorker(id int, ch chan dto.Task, done chan struct{}, ctx context.Context, db storage.DB, mu *sync.Mutex) *OutputWorker {
 	return &OutputWorker{
 		id:   id,
@@ -56,7 +56,7 @@ func NewOutputWorker(id int, ch chan dto.Task, done chan struct{}, ctx context.C
 	}
 }
 
-//Do Input worker maker
+// Do Input worker maker
 func (w *InputWorker) Do(t dto.Task) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
@@ -69,7 +69,7 @@ func (w *InputWorker) Do(t dto.Task) {
 	}
 }
 
-//Loop Input worker loop
+// Loop Input worker loop
 func (w *InputWorker) Loop() error {
 	for {
 		select {
@@ -85,7 +85,7 @@ func (w *InputWorker) Loop() error {
 	}
 }
 
-//Do Output worker maker
+// Do Output worker maker
 func (w *OutputWorker) Do() error {
 	models := make([]dto.Task, 0, 200)
 	for {
