@@ -65,6 +65,7 @@ func (c Config) Get(key string) (string, error) {
 // NewConfig config constructor
 func NewConfig(srvAddr, hostName, fileStoragePath, databaseDSN, configJSON string, enableHTTPS bool) *Config {
 	cfg := make(map[string]string)
+	var appConfig ConfigJSON
 
 	if configJSON != "" {
 		configFile, _ := os.Open(configJSON)
@@ -73,20 +74,39 @@ func NewConfig(srvAddr, hostName, fileStoragePath, databaseDSN, configJSON strin
 		stat, _ := configFile.Stat()
 		var appConfigBytes = make([]byte, stat.Size())
 		reader.Read(appConfigBytes)
-		var appConfig ConfigJSON
 		json.Unmarshal(appConfigBytes, &appConfig)
+	}
+
+	if srvAddr != "" && appConfig.ServerAddress == "" {
+		cfg["server_address_str"] = srvAddr
+	} else {
 		cfg["server_address_str"] = appConfig.ServerAddress
+	}
+
+	if hostName != "" && appConfig.BaseURL == "" {
+		cfg["base_url_str"] = hostName
+	} else {
 		cfg["base_url_str"] = appConfig.BaseURL
+	}
+
+	if fileStoragePath != "" && appConfig.FileStoragePath == "" {
+		cfg["file_storage_path_str"] = fileStoragePath
+	} else {
 		cfg["file_storage_path_str"] = appConfig.FileStoragePath
+	}
+
+	if databaseDSN != "" && appConfig.DatabaseDSN == "" {
+		cfg["database_dsn_str"] = databaseDSN
+	} else {
 		cfg["database_dsn_str"] = appConfig.DatabaseDSN
+	}
+
+	if enableHTTPS && !appConfig.EnableHTTPS {
+		cfg["enable_https"] = strconv.FormatBool(enableHTTPS)
+	} else {
 		cfg["enable_https"] = strconv.FormatBool(appConfig.EnableHTTPS)
 	}
 
-	cfg["server_address_str"] = srvAddr
-	cfg["base_url_str"] = hostName
-	cfg["file_storage_path_str"] = fileStoragePath
-	cfg["database_dsn_str"] = databaseDSN
-	cfg["enable_https"] = strconv.FormatBool(enableHTTPS)
 	return &Config{
 		cfg: cfg,
 	}
