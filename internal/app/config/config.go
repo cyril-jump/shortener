@@ -36,7 +36,7 @@ var EnvVar struct {
 	BaseURL         string `env:"BASE_URL" envDefault:"http://localhost:8080" json:"base_url,omitempty"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH" json:"file_storage_path,omitempty"`
 	DatabaseDSN     string `env:"DATABASE_DSN" json:"database_dsn,omitempty"`
-	ConfigJSON      string `env:"CONFIG"`
+	ConfigJSON      string `env:"CONFIG" envDefault:""`
 	EnableHTTPS     bool   `env:"ENABLE_HTTPS" json:"enable_https,omitempty"`
 }
 
