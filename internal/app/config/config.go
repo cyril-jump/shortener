@@ -20,15 +20,6 @@ func (c contextKey) String() string {
 	return string(c)
 }
 
-// ConfigJSON struct
-type ConfigJSON struct {
-	ServerAddress   string `json:"server_address,omitempty"`
-	BaseURL         string `json:"base_url,omitempty"`
-	FileStoragePath string `json:"file_storage_path,omitempty"`
-	DatabaseDSN     string `json:"database_dsn,omitempty"`
-	EnableHTTPS     bool   `json:"enable_https,omitempty"`
-}
-
 // Flags struct
 var Flags struct {
 	ServerAddress   string
@@ -39,14 +30,14 @@ var Flags struct {
 	EnableHTTPS     bool
 }
 
-// EnvVar environment vars
+// EnvVar config vars
 var EnvVar struct {
-	ServerAddress   string `env:"SERVER_ADDRESS" envDefault:":8080"`
-	BaseURL         string `env:"BASE_URL" envDefault:"http://localhost:8080"`
-	FileStoragePath string `env:"FILE_STORAGE_PATH"`
-	DatabaseDSN     string `env:"DATABASE_DSN"`
+	ServerAddress   string `env:"SERVER_ADDRESS" envDefault:":8080" json:"server_address,omitempty"`
+	BaseURL         string `env:"BASE_URL" envDefault:"http://localhost:8080" json:"base_url,omitempty"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH" json:"file_storage_path,omitempty"`
+	DatabaseDSN     string `env:"DATABASE_DSN" json:"database_dsn,omitempty"`
 	ConfigJSON      string `env:"CONFIG"`
-	EnableHTTPS     bool   `env:"ENABLE_HTTPS"`
+	EnableHTTPS     bool   `env:"ENABLE_HTTPS" json:"enable_https,omitempty"`
 }
 
 // Config struct
@@ -65,7 +56,6 @@ func (c Config) Get(key string) (string, error) {
 // NewConfig config constructor
 func NewConfig(srvAddr, hostName, fileStoragePath, databaseDSN, configJSON string, enableHTTPS bool) *Config {
 	cfg := make(map[string]string)
-	var appConfig ConfigJSON
 
 	if configJSON != "" {
 		configFile, _ := os.Open(configJSON)
@@ -74,37 +64,37 @@ func NewConfig(srvAddr, hostName, fileStoragePath, databaseDSN, configJSON strin
 		stat, _ := configFile.Stat()
 		var appConfigBytes = make([]byte, stat.Size())
 		reader.Read(appConfigBytes)
-		json.Unmarshal(appConfigBytes, &appConfig)
+		json.Unmarshal(appConfigBytes, &EnvVar)
 	}
 
-	if srvAddr != "" && appConfig.ServerAddress == "" {
+	if srvAddr != "" && EnvVar.ServerAddress == "" {
 		cfg["server_address_str"] = srvAddr
 	} else {
-		cfg["server_address_str"] = appConfig.ServerAddress
+		cfg["server_address_str"] = EnvVar.ServerAddress
 	}
 
-	if hostName != "" && appConfig.BaseURL == "" {
+	if hostName != "" && EnvVar.BaseURL == "" {
 		cfg["base_url_str"] = hostName
 	} else {
-		cfg["base_url_str"] = appConfig.BaseURL
+		cfg["base_url_str"] = EnvVar.BaseURL
 	}
 
-	if fileStoragePath != "" && appConfig.FileStoragePath == "" {
+	if fileStoragePath != "" && EnvVar.FileStoragePath == "" {
 		cfg["file_storage_path_str"] = fileStoragePath
 	} else {
-		cfg["file_storage_path_str"] = appConfig.FileStoragePath
+		cfg["file_storage_path_str"] = EnvVar.FileStoragePath
 	}
 
-	if databaseDSN != "" && appConfig.DatabaseDSN == "" {
+	if databaseDSN != "" && EnvVar.DatabaseDSN == "" {
 		cfg["database_dsn_str"] = databaseDSN
 	} else {
-		cfg["database_dsn_str"] = appConfig.DatabaseDSN
+		cfg["database_dsn_str"] = EnvVar.DatabaseDSN
 	}
 
-	if enableHTTPS && !appConfig.EnableHTTPS {
+	if enableHTTPS && !EnvVar.EnableHTTPS {
 		cfg["enable_https"] = strconv.FormatBool(enableHTTPS)
 	} else {
-		cfg["enable_https"] = strconv.FormatBool(appConfig.EnableHTTPS)
+		cfg["enable_https"] = strconv.FormatBool(EnvVar.EnableHTTPS)
 	}
 
 	return &Config{

@@ -28,7 +28,7 @@ import (
 
 func init() {
 	// it outputs a message to stdout
-	//printAssemblyData()
+	printAssemblyData()
 	// evn vars
 	err := env.Parse(&config.EnvVar)
 	if err != nil {
