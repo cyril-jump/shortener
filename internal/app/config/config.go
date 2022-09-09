@@ -1,6 +1,13 @@
 package config
 
-import "github.com/cyril-jump/shortener/internal/app/utils/errs"
+import (
+	"bufio"
+	"encoding/json"
+	"os"
+	"strconv"
+
+	"github.com/cyril-jump/shortener/internal/app/utils/errs"
+)
 
 // contextKey const
 type contextKey string
@@ -19,14 +26,18 @@ var Flags struct {
 	BaseURL         string
 	FileStoragePath string
 	DatabaseDSN     string
+	ConfigJSON      string
+	EnableHTTPS     bool
 }
 
-// EnvVar environment vars
-var EnvVar struct {
-	ServerAddress   string `env:"SERVER_ADDRESS" envDefault:":8080"`
-	BaseURL         string `env:"BASE_URL" envDefault:"http://localhost:8080"`
-	FileStoragePath string `env:"FILE_STORAGE_PATH"`
-	DatabaseDSN     string `env:"DATABASE_DSN"`
+// EnvVar config vars
+type EnvVar struct {
+	ServerAddress   string `env:"SERVER_ADDRESS" envDefault:":8080" json:"server_address,omitempty"`
+	BaseURL         string `env:"BASE_URL" envDefault:"http://localhost:8080" json:"base_url,omitempty"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH" json:"file_storage_path,omitempty"`
+	DatabaseDSN     string `env:"DATABASE_DSN" json:"database_dsn,omitempty"`
+	ConfigJSON      string `env:"CONFIG" envDefault:""`
+	EnableHTTPS     bool   `env:"ENABLE_HTTPS" json:"enable_https,omitempty"`
 }
 
 // Config struct
@@ -43,12 +54,50 @@ func (c Config) Get(key string) (string, error) {
 }
 
 // NewConfig config constructor
-func NewConfig(srvAddr, hostName, fileStoragePath, databaseDSN string) *Config {
+func NewConfig(srvAddr, hostName, fileStoragePath, databaseDSN, configJSON string, enableHTTPS bool) *Config {
 	cfg := make(map[string]string)
-	cfg["server_address_str"] = srvAddr
-	cfg["base_url_str"] = hostName
-	cfg["file_storage_path_str"] = fileStoragePath
-	cfg["database_dsn_str"] = databaseDSN
+	var appConfig EnvVar
+
+	if configJSON != "" {
+		configFile, _ := os.Open(configJSON)
+		defer configFile.Close()
+		reader := bufio.NewReader(configFile)
+		stat, _ := configFile.Stat()
+		var appConfigBytes = make([]byte, stat.Size())
+		reader.Read(appConfigBytes)
+		json.Unmarshal(appConfigBytes, &appConfig)
+	}
+
+	if srvAddr != "" && appConfig.ServerAddress == "" {
+		cfg["server_address_str"] = srvAddr
+	} else {
+		cfg["server_address_str"] = appConfig.ServerAddress
+	}
+
+	if hostName != "" && appConfig.BaseURL == "" {
+		cfg["base_url_str"] = hostName
+	} else {
+		cfg["base_url_str"] = appConfig.BaseURL
+	}
+
+	if fileStoragePath != "" && appConfig.FileStoragePath == "" {
+		cfg["file_storage_path_str"] = fileStoragePath
+	} else {
+		cfg["file_storage_path_str"] = appConfig.FileStoragePath
+	}
+
+	if databaseDSN != "" && appConfig.DatabaseDSN == "" {
+		cfg["database_dsn_str"] = databaseDSN
+	} else {
+		cfg["database_dsn_str"] = appConfig.DatabaseDSN
+	}
+
+	if enableHTTPS && !appConfig.EnableHTTPS {
+		cfg["enable_https"] = strconv.FormatBool(enableHTTPS)
+	} else {
+		cfg["enable_https"] = strconv.FormatBool(appConfig.EnableHTTPS)
+	}
+
 	return &Config{
 		cfg: cfg,
 	}
