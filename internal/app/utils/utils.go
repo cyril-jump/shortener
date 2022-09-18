@@ -2,6 +2,8 @@ package utils
 
 import (
 	"crypto/md5"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"net"
@@ -38,6 +40,18 @@ func CreateCookie(c echo.Context, usr storage.Users) string {
 	c.SetCookie(cookie)
 	c.Request().AddCookie(cookie)
 	return userID
+}
+
+//	CreateID Creating user ID.
+func CreateID(size int) string {
+	b := make([]byte, size)
+	_, err := rand.Read(b)
+	if err != nil {
+		log.Println(err)
+	}
+
+	id := hex.EncodeToString(b)
+	return id
 }
 
 // CheckIP util

@@ -9,6 +9,17 @@ import (
 	"github.com/cyril-jump/shortener/internal/app/utils/errs"
 )
 
+// User ID
+type User string
+
+func (c User) String() string {
+	return string(c)
+}
+
+var (
+	UserID User = "UserID"
+)
+
 // contextKey const
 type contextKey string
 
