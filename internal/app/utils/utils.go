@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/cyril-jump/shortener/internal/app/config"
 	"github.com/cyril-jump/shortener/internal/app/storage"
+	"github.com/cyril-jump/shortener/internal/app/utils/errs"
 )
 
 // Hash Get short URL from base URL
@@ -36,4 +38,26 @@ func CreateCookie(c echo.Context, usr storage.Users) string {
 	c.SetCookie(cookie)
 	c.Request().AddCookie(cookie)
 	return userID
+}
+
+// CheckIP util
+func CheckIP(ip string, trustedNet string) error {
+	if ip == "" {
+		return errs.ErrNetNotTrusted
+	}
+	ipRequest, _, err := net.ParseCIDR(ip)
+	if err != nil {
+		return err
+	}
+	var ipnet *net.IPNet = nil
+	if trustedNet != "" {
+		_, ipnet, err = net.ParseCIDR(trustedNet)
+		if err != nil {
+			return err
+		}
+	}
+	if ipnet.Contains(ipRequest) {
+		return nil
+	}
+	return errs.ErrNetNotTrusted
 }

@@ -9,6 +9,7 @@ type DB interface {
 	SetShortURL(userID, shortURL, baseURL string) error
 	DelBatchShortURLs(tasks []dto.Task) error
 	Ping() error
+	GetStats() (dto.Stat, error)
 	Close() error
 }
 

@@ -28,6 +28,7 @@ var Flags struct {
 	DatabaseDSN     string
 	ConfigJSON      string
 	EnableHTTPS     bool
+	TrustedSubnet   string
 }
 
 // EnvVar config vars
@@ -38,6 +39,7 @@ type EnvVar struct {
 	DatabaseDSN     string `env:"DATABASE_DSN" json:"database_dsn,omitempty"`
 	ConfigJSON      string `env:"CONFIG" envDefault:""`
 	EnableHTTPS     bool   `env:"ENABLE_HTTPS" json:"enable_https,omitempty"`
+	TrustedSubnet   string `env:"TRUSTED_SUBNET" json:"trusted_subnet,omitempty"`
 }
 
 // Config struct
@@ -54,7 +56,7 @@ func (c Config) Get(key string) (string, error) {
 }
 
 // NewConfig config constructor
-func NewConfig(srvAddr, hostName, fileStoragePath, databaseDSN, configJSON string, enableHTTPS bool) *Config {
+func NewConfig(srvAddr, hostName, fileStoragePath, databaseDSN, configJSON string, enableHTTPS bool, trustedSubnet string) *Config {
 	cfg := make(map[string]string)
 	var appConfig EnvVar
 
@@ -96,6 +98,12 @@ func NewConfig(srvAddr, hostName, fileStoragePath, databaseDSN, configJSON strin
 		cfg["enable_https"] = strconv.FormatBool(enableHTTPS)
 	} else {
 		cfg["enable_https"] = strconv.FormatBool(appConfig.EnableHTTPS)
+	}
+
+	if trustedSubnet != "" && appConfig.TrustedSubnet == "" {
+		cfg["trusted_subnet"] = trustedSubnet
+	} else {
+		cfg["trusted_subnet"] = trustedSubnet
 	}
 
 	return &Config{

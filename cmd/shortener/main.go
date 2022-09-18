@@ -44,6 +44,7 @@ func init() {
 	flag.StringVarP(&config.Flags.DatabaseDSN, "psqlConn", "d", cfg.DatabaseDSN, "database URL conn")
 	flag.BoolVarP(&config.Flags.EnableHTTPS, "secure", "s", cfg.EnableHTTPS, "secure conn")
 	flag.StringVarP(&config.Flags.ConfigJSON, "json", "c", cfg.ConfigJSON, "JSON configuration")
+	flag.StringVarP(&config.Flags.TrustedSubnet, "trusted", "t", cfg.TrustedSubnet, "trusted subnet")
 	flag.Parse()
 
 }
@@ -64,6 +65,7 @@ func main() {
 		config.Flags.DatabaseDSN,
 		config.Flags.ConfigJSON,
 		config.Flags.EnableHTTPS,
+		config.Flags.TrustedSubnet,
 	)
 
 	psqlConn, err := cfg.Get("database_dsn_str")

@@ -122,3 +122,8 @@ func (D *DB) Close() error {
 	D.DataCache = nil
 	return D.file.Close()
 }
+
+func (D *DB) GetStats() (dto.Stat, error) {
+
+	return dto.Stat{}, nil
+}

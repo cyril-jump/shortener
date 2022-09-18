@@ -54,6 +54,7 @@ func (suite *Suite) SetupTest() {
 		"postgres://dmosk:dmosk@localhost:5432/dmosk?sslmode=disable",
 		"",
 		false,
+		"192.168.1.0/24",
 	)
 	suite.usr = users.New(suite.ctx)
 	suite.router = echo.NewRouter(suite.e)

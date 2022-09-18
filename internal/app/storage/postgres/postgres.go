@@ -200,6 +200,40 @@ func (D *DB) DelBatchShortURLs(tasks []dto.Task) error {
 	return nil
 }
 
+// GetStats Get Stats
+func (D *DB) GetStats() (dto.Stat, error) {
+	D.mu.Lock()
+	var stat dto.Stat
+
+	selectStmt1, err := D.db.Prepare("SELECT count( distinct user_id) from users_url")
+	if err != nil {
+		return dto.Stat{}, err
+	}
+
+	selectStmt2, err := D.db.Prepare("SELECT count(id) from urls")
+	if err != nil {
+		return dto.Stat{}, err
+	}
+
+	defer func() {
+		selectStmt1.Close()
+		selectStmt2.Close()
+		D.mu.Unlock()
+	}()
+
+	err = selectStmt1.QueryRow().Scan(&stat.Users)
+	if err != nil {
+		return stat, err
+	}
+
+	err = selectStmt2.QueryRow().Scan(&stat.URLs)
+	if err != nil {
+		return stat, err
+	}
+
+	return stat, nil
+}
+
 // Ping Ping DB
 func (D *DB) Ping() error {
 	return D.db.Ping()
