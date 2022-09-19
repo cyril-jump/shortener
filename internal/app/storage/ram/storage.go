@@ -76,3 +76,8 @@ func (D *DB) Close() error {
 	D.DataCache = nil
 	return nil
 }
+
+func (D *DB) GetStats() (dto.Stat, error) {
+
+	return dto.Stat{}, nil
+}

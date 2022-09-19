@@ -6,7 +6,7 @@ import (
 
 	"github.com/labstack/echo-contrib/pprof"
 
-	"github.com/cyril-jump/shortener/internal/app/handlers"
+	"github.com/cyril-jump/shortener/internal/app/handlers/http"
 	"github.com/cyril-jump/shortener/internal/app/middlewares"
 	"github.com/cyril-jump/shortener/internal/app/storage"
 )
@@ -14,7 +14,7 @@ import (
 func InitSrv(db storage.DB, cfg storage.Cfg, usr storage.Users, inWorker storage.InWorker) *echo.Echo {
 
 	// server
-	srv := handlers.New(db, cfg, usr, inWorker)
+	srv := http.New(db, cfg, usr, inWorker)
 
 	// new Echo instance
 	e := echo.New()

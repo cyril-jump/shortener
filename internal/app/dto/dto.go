@@ -35,3 +35,9 @@ type Task struct {
 	ID       string
 	ShortURL string
 }
+
+// Stat struct
+type Stat struct {
+	URLs  int `json:"urls"`
+	Users int `json:"users"`
+}

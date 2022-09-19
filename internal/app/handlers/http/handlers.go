@@ -1,4 +1,4 @@
-package handlers
+package http
 
 import (
 	"encoding/json"
@@ -247,4 +247,26 @@ func (s Server) PingDB(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 	return c.NoContent(http.StatusOK)
+}
+
+//GetStats get stats
+func (s Server) GetStats(c echo.Context) error {
+	trustedSubnet, err := s.cfg.Get("trusted_subnet")
+	utils.CheckErr(err, "trusted_subnet")
+
+	ip := c.Request().Header.Get("X-Real-IP")
+	err = utils.CheckIP(ip, trustedSubnet)
+	if err != nil {
+		if errors.Is(err, errs.ErrNetNotTrusted) {
+			return c.NoContent(http.StatusForbidden)
+		} else {
+			return c.NoContent(http.StatusInternalServerError)
+		}
+	}
+	stat, err := s.db.GetStats()
+	if err != nil {
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	return c.JSON(http.StatusOK, stat)
 }

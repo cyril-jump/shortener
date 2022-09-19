@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"log"
-	"net/http"
+	"net"
 	"os"
 	"os/signal"
 	"runtime"
@@ -16,7 +16,7 @@ import (
 
 	"github.com/cyril-jump/shortener/internal/app/config"
 	"github.com/cyril-jump/shortener/internal/app/dto"
-	"github.com/cyril-jump/shortener/internal/app/server"
+	servergrpc "github.com/cyril-jump/shortener/internal/app/server-grpc"
 	"github.com/cyril-jump/shortener/internal/app/storage"
 	"github.com/cyril-jump/shortener/internal/app/storage/postgres"
 	"github.com/cyril-jump/shortener/internal/app/storage/ram"
@@ -42,7 +42,6 @@ func init() {
 	flag.StringVarP(&config.Flags.BaseURL, "base", "b", cfg.BaseURL, "base url")
 	flag.StringVarP(&config.Flags.FileStoragePath, "file", "f", cfg.FileStoragePath, "file storage path")
 	flag.StringVarP(&config.Flags.DatabaseDSN, "psqlConn", "d", cfg.DatabaseDSN, "database URL conn")
-	flag.BoolVarP(&config.Flags.EnableHTTPS, "secure", "s", cfg.EnableHTTPS, "secure conn")
 	flag.StringVarP(&config.Flags.ConfigJSON, "json", "c", cfg.ConfigJSON, "JSON configuration")
 	flag.StringVarP(&config.Flags.TrustedSubnet, "trusted", "t", cfg.TrustedSubnet, "trusted subnet")
 	flag.Parse()
@@ -98,48 +97,43 @@ func main() {
 
 	g.Go(inWorker.Loop)
 
-	// Init HTTPServer
+	// Init GRPCServer
 
-	srv := server.InitSrv(db, cfg, usr, inWorker)
-
-	go func() {
-
-		<-signalChan
-
-		log.Println("Shutting down...")
-
-		cancel()
-		if err = srv.Shutdown(ctx); err != nil && err != ctx.Err() {
-			srv.Logger.Fatal(err)
-		}
-
-		if err = db.Close(); err != nil {
-			log.Fatal(err)
-		}
-
-		close(recordCh)
-		close(doneCh)
-		err = g.Wait()
-		if err != nil {
-			log.Println(err)
-		}
-
-	}()
+	grpcServer := servergrpc.InitSrv(db, cfg, usr, inWorker)
 
 	// Start Server
 
 	serverAddress, err := cfg.Get("server_address_str")
 	utils.CheckErr(err, "server_address_str")
 
-	enableHTTPS, err := cfg.Get("enable_https")
-	utils.CheckErr(err, "enable_https")
-
-	if enableHTTPS == "true" {
-		if err = srv.StartTLS(serverAddress, "certs/localhost.crt", "certs/localhost.key"); err != nil && err != http.ErrServerClosed {
-			srv.Logger.Fatal(err)
-		}
+	grpcListener, err := net.Listen("tcp", serverAddress)
+	if err != nil {
+		log.Fatalf("unable to listen on %v addr for grpc: %v", serverAddress, err)
 	}
-	if err = srv.Start(serverAddress); err != nil && err != http.ErrServerClosed {
-		srv.Logger.Fatal(err)
+
+	go func() {
+		err = grpcServer.Serve(grpcListener)
+		if err != nil {
+			log.Fatalf("grpc serve failed: %v", err)
+		}
+	}()
+
+	<-signalChan
+
+	log.Println("Shutting down...")
+
+	cancel()
+
+	grpcServer.GracefulStop()
+
+	if err = db.Close(); err != nil {
+		log.Fatal(err)
+	}
+
+	close(recordCh)
+	close(doneCh)
+	err = g.Wait()
+	if err != nil {
+		log.Println(err)
 	}
 }
